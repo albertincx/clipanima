@@ -16,21 +16,17 @@ const AnimationStudio = () => {
     useEffect(() => {
         // Initialize with a blank frame after the canvas is ready
         const timer = setTimeout(() => {
-            const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Initialize the drawing function first
+            initZoom();
 
-                    // Capture the blank canvas as the initial frame
-                    const initialFrameData = canvas.toDataURL();
+            // Then get the drawing canvas data after initZoom has created it
+            setTimeout(() => {
+                if ((window as any).drawingCanvas) {
+                    const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+                    const initialFrameData = drawingCanvas.toDataURL();
                     setFrames([initialFrameData]);
-
-                    // Now initialize the drawing function
-                    initZoom();
                 }
-            }
+            }, 50); // Small delay to ensure drawing canvas is ready
         }, 100); // Small delay to ensure canvas is ready
 
         return () => clearTimeout(timer);
@@ -43,53 +39,72 @@ const AnimationStudio = () => {
         (window as any).isEraser = isEraser;
     }, [selectedColor, brushSize, isEraser]);
 
+    // Update canvas when current frame changes
+    useEffect(() => {
+        if (frames.length > 0 && currentFrame >= 0 && currentFrame < frames.length) {
+            const currentFrameData = frames[currentFrame];
+            if (currentFrameData && currentFrameData !== '') {
+                setCanvasData(currentFrameData);
+            } else if ((window as any).drawingCanvas) {
+                // If the frame is empty, clear the drawing canvas
+                const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+                const ctx = drawingCanvas.getContext('2d');
+                if (ctx) {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                }
+            }
+        }
+    }, [currentFrame, frames]);
+
     // Function to load an example drawing
     const loadExample = (exampleType: string) => {
-        const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-        if (!canvas) return;
+        // Use the drawing canvas that's exposed by initZoom
+        if ((window as any).drawingCanvas) {
+            const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+            const ctx = drawingCanvas.getContext('2d');
+            if (!ctx) return;
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+            // Clear the canvas
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 
-        // Clear the canvas
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Draw example based on type
+            ctx.fillStyle = selectedColor;
+            ctx.strokeStyle = selectedColor;
+            ctx.lineWidth = brushSize;
 
-        // Draw example based on type
-        ctx.fillStyle = selectedColor;
-        ctx.strokeStyle = selectedColor;
-        ctx.lineWidth = brushSize;
+            switch (exampleType) {
+                case 'circle':
+                    ctx.beginPath();
+                    ctx.arc(drawingCanvas.width / 2, drawingCanvas.height / 2, 50, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                case 'square':
+                    ctx.fillRect(drawingCanvas.width / 2 - 50, drawingCanvas.height / 2 - 50, 100, 100);
+                    break;
+                case 'smiley':
+                    // Draw face
+                    ctx.beginPath();
+                    ctx.arc(drawingCanvas.width / 2, drawingCanvas.height / 2, 60, 0, Math.PI * 2);
+                    ctx.stroke();
 
-        switch (exampleType) {
-            case 'circle':
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);
-                ctx.fill();
-                break;
-            case 'square':
-                ctx.fillRect(canvas.width / 2 - 50, canvas.height / 2 - 50, 100, 100);
-                break;
-            case 'smiley':
-                // Draw face
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, 60, 0, Math.PI * 2);
-                ctx.stroke();
+                    // Draw eyes
+                    ctx.beginPath();
+                    ctx.arc(drawingCanvas.width / 2 - 20, drawingCanvas.height / 2 - 20, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(drawingCanvas.width / 2 + 20, drawingCanvas.height / 2 - 20, 8, 0, Math.PI * 2);
+                    ctx.fill();
 
-                // Draw eyes
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2 - 20, canvas.height / 2 - 20, 8, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2 + 20, canvas.height / 2 - 20, 8, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Draw smile
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, 30, 0, Math.PI, false);
-                ctx.stroke();
-                break;
-            default:
-                break;
+                    // Draw smile
+                    ctx.beginPath();
+                    ctx.arc(drawingCanvas.width / 2, drawingCanvas.height / 2, 30, 0, Math.PI, false);
+                    ctx.stroke();
+                    break;
+                default:
+                    break;
+            }
         }
     };
 
@@ -139,17 +154,48 @@ const AnimationStudio = () => {
         setCurrentFrame(currentFrame + 1);
     };
 
+    // Function to clear the current canvas
+    const clearCanvas = () => {
+        if (!window.confirm('Are you sure you want to clear the current canvas? This action cannot be undone.')) {
+            return;
+        }
+
+        // Use the drawing canvas that's exposed by initZoom
+        if ((window as any).drawingCanvas) {
+            const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+            const ctx = drawingCanvas.getContext('2d');
+            if (ctx) {
+                // Clear the drawing canvas and fill with white
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+
+                // Update the current frame with the cleared canvas data
+                const updatedFrames = [...frames];
+                updatedFrames[currentFrame] = drawingCanvas.toDataURL();
+                setFrames(updatedFrames);
+            }
+        }
+    };
+
     // Function to delete current frame
     const deleteFrame = () => {
         if (frames.length <= 1) return; // Don't delete the last frame
+
+        // Show confirmation dialog
+        if (!window.confirm('Are you sure you want to delete this frame? This action cannot be undone.')) {
+            return;
+        }
+
         // Save the current frame before deletion
         const updatedFrames = [...frames];
         updatedFrames[currentFrame] = getCanvasData();
-        setFrames(updatedFrames);
 
         const newFrames = updatedFrames.filter((_, index) => index !== currentFrame);
         setFrames(newFrames);
-        setCurrentFrame(Math.min(currentFrame, newFrames.length - 1));
+
+        // Update current frame index, ensuring it's within bounds
+        const newCurrentFrame = Math.min(currentFrame, newFrames.length - 1);
+        setCurrentFrame(newCurrentFrame);
     };
 
     // Function to change frame
@@ -162,25 +208,17 @@ const AnimationStudio = () => {
         setFrames(updatedFrames);
 
         setCurrentFrame(index);
-        // If the target frame is empty, initialize with a blank canvas
-        if (!updatedFrames[index] || updatedFrames[index] === '') {
-            const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                }
-            }
-        } else {
-            setCanvasData(updatedFrames[index]);
-        }
     };
 
     // Function to convert frames to GIF
     const exportGif = async () => {
         if (frames.length === 0) {
             alert('No frames to export');
+            return;
+        }
+
+        // Show confirmation dialog
+        if (!window.confirm('Are you sure you want to export this animation as a GIF? This may take a moment.')) {
             return;
         }
 
@@ -305,18 +343,6 @@ const AnimationStudio = () => {
                         />
                         <span className="text-white text-sm w-8">{brushSize}px</span>
                     </div>
-
-                    <div className="mt-3">
-                        <button
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm w-full"
-                            onClick={() => {
-                                setShowFrameManager(true);
-                                setShowPalette(false);
-                            }}
-                        >
-                            Open Frame Manager
-                        </button>
-                    </div>
                 </div>
             )}
 
@@ -333,6 +359,21 @@ const AnimationStudio = () => {
                      stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                           d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                </svg>
+            </button>
+
+            <button
+                className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 translate-x-0"
+                // className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm w-full"
+                onClick={() => {
+                    setShowFrameManager(!showFrameManager);
+                    setShowPalette(false);
+                }}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
+                     viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                 </svg>
             </button>
 
@@ -443,6 +484,18 @@ const AnimationStudio = () => {
                                      viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                           d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </button>
+
+                            <button
+                                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded"
+                                onClick={clearCanvas}
+                                aria-label="Clear canvas"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
                             </button>
 

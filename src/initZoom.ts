@@ -57,13 +57,12 @@ const initZoom = () => {
         const color = (window as any).selectedColor || "black";
         const size = (window as any).brushSize || 8;
         const isEraser = (window as any).isEraser || false;
+        dCtx.globalCompositeOperation = 'source-over'; // Reset to normal drawing
 
         if (isEraser) {
-            // Set eraser mode - use background color or special eraser settings
-            dCtx.globalCompositeOperation = 'destination-out';
-            dCtx.fillStyle = "rgba(0,0,0,1)"; // This will erase when using destination-out
+            dCtx.fillStyle = "rgba(255, 255, 255, 1)"; // This will erase when using destination-out
+            dCtx.strokeStyle = "rgba(255, 255, 255, 1)"; // This will erase when using destination-out
         } else {
-            dCtx.globalCompositeOperation = 'source-over'; // Reset to normal drawing
             dCtx.fillStyle = color;
             dCtx.strokeStyle = color; // Also set stroke color to match
         }
@@ -75,11 +74,6 @@ const initZoom = () => {
             dCtx.arc(point.x, point.y, size / 2, 0, Math.PI * 2); // Use half of size for radius
             dCtx.fill();
             dCtx.stroke();
-        }
-
-        // Reset composite operation after drawing
-        if (isEraser) {
-            dCtx.globalCompositeOperation = 'source-over';
         }
     }
 
