@@ -1,0 +1,50 @@
+{
+  "name": "clipanima",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "VITE_TEST_APP=1 VITE_APP_URL=http://localhost:8000 vite --host --force",
+    "build": "tsc",
+    "buildStatic": "tsc && vite build",
+    "build:test": "tsc && VITE_NO_SERVER=1 vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.6",
+    "@ffmpeg/util": "^0.12.2",
+    "@tailwindcss/vite": "^4.1.11",
+    "@vitejs/plugin-legacy": "^7.0.0",
+    "autoprefixer": "^10.4.21",
+    "buffer": "^6.0.3",
+    "history": "^5.3.0",
+    "i18next": "^25.3.2",
+    "i18next-http-backend": "^3.0.2",
+    "javascript-obfuscator": "^4.1.1",
+    "lucide-react": "^0.525.0",
+    "object.hasown": "^1.1.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-error-boundary": "^6.0.0",
+    "react-i18next": "^15.6.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.6.3",
+    "react-transition-group": "^4.4.5",
+    "rollup-plugin-obfuscator": "^1.1.0",
+    "tailwindcss": "^4.1.11",
+    "uuid": "^11.1.0",
+    "vite-plugin-pwa": "^1.0.1",
+    "vite-plugin-svgr": "^4.3.0",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@babel/plugin-transform-typescript": "^7.28.0",
+    "@babel/preset-typescript": "^7.27.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "sass": "^1.89.2",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.4"
+  }
+}

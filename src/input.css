@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root {
+    --background: #110717;
+    /*--background: #200D2B;*/
+    --text: #ffffff;
+    --background-grad-rose: linear-gradient(180deg, #110717 0%, #110717 100%);
+    --background-grad: linear-gradient(180deg, #110717 0%, #110717 100%);
+}
+
+[data-theme='light'] {
+    --background: #ffffff;
+    --text: #5b2d7e;
+    --background-grad-rose: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(255, 216, 230, 1) 100%);
+    --background-grad: #e4e4e4;
+}
+
+[data-theme='light'] .light-btn {
+    /*color: #fff;*/
+}
+
+[data-theme='dark'] .light-btn {
+    color: #000;
+}
+
+/*
+Source - https://stackoverflow.com/a/45122001
+Posted by Blindman67, modified by community. See post 'Timeline' for change history
+Retrieved 2025-12-27, License - CC BY-SA 4.0
+*/
+
+#canvas {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 2;
+}
+
+body {
+    /*background: #bbb;*/
+    touch-action: none;
+}
