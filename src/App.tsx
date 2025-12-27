@@ -207,7 +207,6 @@ const AnimationStudio = () => {
 
             // Load ffmpeg if not already loaded
             const ffmpeg = await loadFFmpeg();
-
             // Convert base64 frames to image files for ffmpeg
             for (let i = 0; i < frames.length; i++) {
                 const frameData = frames[i];
@@ -221,26 +220,28 @@ const AnimationStudio = () => {
                     }
 
                     // Write frame to ffmpeg as image file
-                    await ffmpeg.write(`frame${i.toString().padStart(3, '0')}.png`, bytes);
+                    // console.log(ffmpeg)
+                    await ffmpeg.writeFile(`frame${i.toString().padStart(3, '0')}.png`, bytes);
                 }
             }
 
             // Create a text file with frame list for ffmpeg
-            const frameList = frames.map((_, i) => `file 'frame${i.toString().padStart(3, '0')}.png'\nduration 0.5`).join('\n');
-            await ffmpeg.write('framelist.txt', new TextEncoder().encode(frameList));
+            const frameList = frames.map((_, i) => `file 'frame${i.toString().padStart(3, '0')}.png'`).join('\n') + '\n';
+            await ffmpeg.writeFile('framelist.txt', new TextEncoder().encode(frameList));
 
             // Run ffmpeg command to create GIF
-            await ffmpeg.run(
+            await ffmpeg.exec(
                 '-f', 'concat',
                 '-safe', '0',
                 '-i', 'framelist.txt',
-                '-vf', 'fps=10,scale=512:512:flags=lanczos',
+                '-vf', 'fps=10,scale=512:512:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
                 '-loop', '0',
                 'output.gif'
             );
 
             // Read the output GIF
-            const data = await ffmpeg.read('output.gif');
+            // const data = await ffmpeg.FS('readFile', 'output.gif');
+            const data = await ffmpeg.readFile('output.gif');
 
             // Create a blob and download the GIF
             const blob = new Blob([data.buffer], {type: 'image/gif'});
