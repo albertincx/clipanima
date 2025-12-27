@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import initZoom from './initZoom'
+import {FramesToMp4Downloader} from "./FramesToMp4Downloader";
 
 const AnimationStudio = () => {
     const [showPalette, setShowPalette] = useState(false);
@@ -7,6 +8,7 @@ const AnimationStudio = () => {
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(8);
     const [frames, setFrames] = useState<string[]>([]); // Store frames as base64 images
+    const [frames2, setFrames2] = useState<string[]>([]); // Store frames as base64 images
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isEraser, setIsEraser] = useState(false);
     const [showFrameManager, setShowFrameManager] = useState(false);
@@ -175,25 +177,6 @@ const AnimationStudio = () => {
         }
     };
 
-    // Lazy load ffmpeg module locally
-    const loadFFmpeg = async () => {
-        if (!(window as any).ffmpegCoreLoaded) {
-            const {FFmpeg} = await import('@ffmpeg/ffmpeg');
-            const {fetchFile} = await import('@ffmpeg/util');
-            const ffmpeg = new FFmpeg();
-            await ffmpeg.load();
-            // if (!ffmpeg.isLoaded()) {
-            // await ffmpeg.load();
-            // }
-
-            (window as any).ffmpeg = ffmpeg;
-            (window as any).ffmpegCoreLoaded = true;
-            (window as any).fetchFile = fetchFile;
-        }
-
-        return (window as any).ffmpeg;
-    };
-
     // Function to convert frames to GIF
     const exportGif = async () => {
         if (frames.length === 0) {
@@ -203,13 +186,33 @@ const AnimationStudio = () => {
 
         try {
             // Show loading indicator
-            alert('Preparing GIF export... This may take a moment.');
+            // alert('Preparing GIF export... This may take a moment.');
 
             // Load ffmpeg if not already loaded
-            const ffmpeg = await loadFFmpeg();
+            // const ffmpeg = await loadFFmpeg();
+            const ffmpeg = {};
+            console.log('frames')
+            console.log(frames)
+            // ffmpeg.on('log', (m: any) => {
+            //     console.log(m)
+            // })
+            const getBase64FromDataUrl = (dataUrl: any) => {
+                if (typeof dataUrl !== 'string') return null;
+                const parts = dataUrl.split(',');
+                if (parts.length !== 2 || !parts[0].includes('base64')) {
+                    console.warn('Not a valid base64 Data URL:', dataUrl);
+                    return null;
+                }
+                return parts[1]; // pure base64 string
+            };
+            let f = []
             // Convert base64 frames to image files for ffmpeg
             for (let i = 0; i < frames.length; i++) {
                 const frameData = frames[i];
+                // let b64 = getBase64FromDataUrl(frameData)
+                if (frameData) {
+                    f.push(frameData);
+                }
                 if (frameData) {
                     // Convert base64 to Uint8Array
                     const base64Data = frameData.split(',')[1]; // Remove data:image/png;base64, prefix
@@ -221,44 +224,47 @@ const AnimationStudio = () => {
 
                     // Write frame to ffmpeg as image file
                     // console.log(ffmpeg)
-                    await ffmpeg.writeFile(`frame${i.toString().padStart(3, '0')}.png`, bytes);
+                    // await ffmpeg.writeFile(`frame${i.toString().padStart(3, '0')}.png`, bytes);
                 }
             }
+            console.log(f)
+            if (f.length) setFrames2(frames.filter(Boolean));
 
             // Create a text file with frame list for ffmpeg
-            const frameList = frames.map((_, i) => `file 'frame${i.toString().padStart(3, '0')}.png'`).join('\n') + '\n';
-            await ffmpeg.writeFile('framelist.txt', new TextEncoder().encode(frameList));
+            const frameList = frames.map((_, i) => {
+                // const data2 = await ffmpeg.readFile(`frame${i.toString().padStart(3, '0')}.png`);
+
+                // downloadFile(data2, `frame${i.toString().padStart(3, '0')}.png`, 'image/png')
+                return `file 'frame${i.toString().padStart(3, '0')}.png'`
+            }).join('\n') + '\n';
+
+
+            // await ffmpeg.writeFile('framelist.txt', new TextEncoder().encode(frameList));
+            // const data1 = await ffmpeg.readFile('framelist.txt');
+            // console.log(data1)
+            // downloadFile(data1, 'framelist.txt', 'image/plain')
 
             // Run ffmpeg command to create GIF
-            await ffmpeg.exec(
-                '-f', 'concat',
-                '-safe', '0',
-                '-i', 'framelist.txt',
-                '-vf', 'fps=10,scale=512:512:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
-                '-loop', '0',
-                'output.gif'
-            );
+            // await ffmpeg.exec(
+            //     '-f', 'concat',
+            //     '-safe', '0',
+            //     '-i', 'framelist.txt',
+            //     '-vf', 'fps=5,scale=320:320:flags=lanczos',
+            //     '-pix_fmt', 'rgb24',
+            //     '-y',
+            //     'output.gif'
+            // );
 
             // Read the output GIF
-            // const data = await ffmpeg.FS('readFile', 'output.gif');
-            const data = await ffmpeg.readFile('output.gif');
+            // const data = await ffmpeg.readFile('output.gif');
+            // downloadFile(data, 'animation.gif', 'image/gif')
+            // const data = await ffmpeg.readFile('output.webm');
+            // downloadFile(data, 'animation.webm', 'video/webm')
 
-            // Create a blob and download the GIF
-            const blob = new Blob([data.buffer], {type: 'image/gif'});
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'animation.gif';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            alert('GIF exported successfully!');
+            // alert('GIF exported successfully!');
         } catch (error) {
             console.error('Error exporting GIF:', error);
-            alert('Error exporting GIF: ' + (error as Error).message);
+            // alert('Error exporting GIF: ' + (error as Error).message);
         }
     };
 
@@ -487,6 +493,12 @@ const AnimationStudio = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
+            {!!frames2.length && (
+                <FramesToMp4Downloader
+                    frames={frames2} fps={10} width={512} height={512}
+                    clearFrames={() => setFrames2([])}
+                />
+            )}
         </div>
     );
 };

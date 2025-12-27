@@ -162,7 +162,7 @@ export default ({mode}) => {
         },
         esbuild: mode === 'production' ? {
             drop: [
-                'console',
+                // 'console',
                 'debugger'
             ],
         } : {
