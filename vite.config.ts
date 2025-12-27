@@ -77,6 +77,7 @@ export default ({mode}) => {
 
     // @ts-ignore
     return defineConfig({
+        base: process.env.VITE_PUBLIC_BASE_URL || '/',
         define: {
             __BUILD__: curTime,
             EXT_APP: JSON.stringify(EXT_APP),
@@ -110,6 +111,23 @@ export default ({mode}) => {
             },
             extraModePlugin,
             tailwindcss(),
+            {
+                name: 'inject-base-tag',
+                transformIndexHtml: {
+                    order: 'post',
+                    handler: (html) => {
+                        const baseUrl = process.env.VITE_PUBLIC_BASE_URL || '/';
+                        if (baseUrl !== '/') {
+                            // Inject base tag after <head>
+                            return html.replace(
+                                /<head>/i,
+                                `<head>\n    <base href="${baseUrl}" />`
+                            );
+                        }
+                        return html;
+                    },
+                },
+            },
         ].filter(Boolean),
         css: {
             postcss: {
