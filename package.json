@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "VITE_TEST_APP=1 VITE_APP_URL=http://localhost:8000 vite --host --force",
-    "build": "tsc",
+    "build": "vite build",
     "buildStatic": "tsc && vite build",
     "build:test": "tsc && VITE_NO_SERVER=1 vite build",
     "preview": "vite preview"
