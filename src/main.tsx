@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import {ErrorBoundary} from "react-error-boundary";
 
 import {ThemeProvider} from "./contexts/ThemeContext";
+import './input.css';
 import './utils/i18n';
 
 import {lazy} from "./utils/lazy";
