@@ -669,16 +669,20 @@ const AnimationStudio = () => {
 
                             <div className="flex items-center space-x-2 bg-gray-700 p-2 rounded">
                                 <label htmlFor="fps-control" className="text-white text-sm">FPS:</label>
-                                <input
+                                <select
                                     id="fps-control"
-                                    type="number"
-                                    min="1"
-                                    max="30"
                                     value={fps}
-                                    onChange={(e) => setFps(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))}
-                                    className="w-12 bg-gray-600 text-white text-sm rounded px-1"
+                                    onChange={(e) => setFps(parseInt(e.target.value))}
+                                    className="bg-gray-600 text-white text-sm rounded px-1"
                                     disabled={isPlaying} // Disable when playing to avoid interval issues
-                                />
+                                >
+                                    <option value="1">1</option>
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="15">15</option>
+                                    <option value="24">24</option>
+                                    <option value="30">30</option>
+                                </select>
                             </div>
                         </div>
 
