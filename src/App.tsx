@@ -9,6 +9,7 @@ const AnimationStudio = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showFrames, setShowFrames] = useState(true);
     const [showLoadModal, setShowLoadModal] = useState(false);
+    const [showCustomFps, setShowCustomFps] = useState(false);
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(8);
     const [frames, setFrames] = useState<string[]>([]); // Store frames as base64 images
@@ -473,6 +474,37 @@ const AnimationStudio = () => {
         }
     };
 
+    // Function to start a new project
+    const newProject = () => {
+        // Show confirmation dialog
+        if (!window.confirm('Are you sure you want to start a new project? This will delete all frames and cannot be undone.')) {
+            return;
+        }
+
+        // Create a blank frame
+        if ((window as any).drawingCanvas) {
+            const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+            const ctx = drawingCanvas.getContext('2d');
+            if (ctx) {
+                // Clear the drawing canvas and fill with white
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+
+                // Create a new blank frame
+                const blankFrameData = drawingCanvas.toDataURL();
+
+                // Reset frames to contain only the blank frame
+                setFrames([blankFrameData]);
+                setCurrentFrame(0);
+
+                // Autosave if enabled
+                if (autosaveEnabled) {
+                    saveFramesToLocalStorage([blankFrameData]);
+                }
+            }
+        }
+    };
+
     // return null
     return (
         <div className="fixed inset-0 bg-gray-900 overflow-hidden">
@@ -689,6 +721,9 @@ const AnimationStudio = () => {
                                 >
                                     <option value="1">1</option>
                                     <option value="5">5</option>
+                                    {fps > 1 && fps < 10 && fps !== 5 && (
+                                        <option value={fps}>{fps}</option>
+                                    )}
                                     <option value="10">10</option>
                                     <option value="15">15</option>
                                     <option value="24">24</option>
@@ -737,7 +772,7 @@ const AnimationStudio = () => {
             {/* Settings Popup */}
             {showSettings && (
                 <div
-                    className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-60">
+                    className="fixed bottom-20 left-1/3 transform -translate-x-1/3 bg-gray-800 p-4 rounded-lg shadow-lg z-60">
                     <div className="flex justify-between items-center mb-3">
                         <h3 className="text-white font-bold">Settings</h3>
                         <button
@@ -796,6 +831,72 @@ const AnimationStudio = () => {
                                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
                         </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <span className="text-white">New Project</span>
+                        <button
+                            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded"
+                            onClick={newProject}
+                            aria-label="Start new project"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                        <span className="text-white">Custom FPS</span>
+                        <button
+                            className="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded"
+                            onClick={() => setShowCustomFps(true)}
+                            aria-label="Set custom FPS"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom FPS Popup */}
+            {showCustomFps && (
+                <div
+                    className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-70">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-white font-bold">Set Custom FPS</h3>
+                        <button
+                            className="text-white hover:text-gray-300"
+                            onClick={() => setShowCustomFps(false)}
+                            aria-label="Close custom FPS"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20"
+                                 fill="currentColor">
+                                <path fillRule="evenodd"
+                                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                      clipRule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                            <button
+                                key={num}
+                                className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded text-lg font-bold"
+                                onClick={() => {
+                                    setFps(num);
+                                    setShowCustomFps(false);
+                                    setShowSettings(false)
+                                }}
+                                aria-label={`Set FPS to ${num}`}
+                            >
+                                {num}
+                            </button>
+                        ))}
                     </div>
                 </div>
             )}
