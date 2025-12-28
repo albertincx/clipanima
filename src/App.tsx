@@ -1246,7 +1246,7 @@ const AnimationStudio = () => {
                             <button
                                 type="button"
                                 className="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded text-sm"
-                                onClick={() => loadExampleGrid('/assets/grid_man.jpg', 130, 160)}
+                                onClick={() => loadExampleGrid('/clipanima/assets/grid_man.jpg', 130, 160)}
                                 aria-label="Load man grid example"
                             >
                                 Man Grid
