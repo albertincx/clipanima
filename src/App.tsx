@@ -1,17 +1,23 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import initZoom from './initZoom'
 import {FramesToMp4Downloader} from "./FramesToMp4Downloader";
 
 const AnimationStudio = () => {
     const [showPalette, setShowPalette] = useState(false);
     const [showExamples, setShowExamples] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(8);
     const [frames, setFrames] = useState<string[]>([]); // Store frames as base64 images
     const [frames2, setFrames2] = useState<string[]>([]); // Store frames as base64 images
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isEraser, setIsEraser] = useState(false);
-    const [showFrameManager, setShowFrameManager] = useState(false);
+    // Removed showFrameManager state since frame manager is now always visible
+    const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [fps, setFps] = useState(5); // frames per second
+    // @ts-ignore
+    const playbackInterval = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         // Initialize with a blank frame after the canvas is ready
@@ -24,7 +30,14 @@ const AnimationStudio = () => {
                 if ((window as any).drawingCanvas) {
                     const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
                     const initialFrameData = drawingCanvas.toDataURL();
-                    setFrames([initialFrameData]);
+
+                    // Check if autosave is enabled and try to load frames from localStorage
+                    const savedFrames = loadFramesFromLocalStorage();
+                    if (savedFrames && savedFrames.length > 0) {
+                        setFrames(savedFrames);
+                    } else {
+                        setFrames([initialFrameData]);
+                    }
                 }
             }, 50); // Small delay to ensure drawing canvas is ready
         }, 100); // Small delay to ensure canvas is ready
@@ -56,6 +69,22 @@ const AnimationStudio = () => {
             }
         }
     }, [currentFrame, frames]);
+
+    // Handle autosave when frames change and autosave is enabled
+    useEffect(() => {
+        if (autosaveEnabled && frames.length > 0) {
+            saveFramesToLocalStorage(frames);
+        }
+    }, [frames, autosaveEnabled]);
+
+    // Cleanup interval on unmount
+    useEffect(() => {
+        return () => {
+            if (playbackInterval.current) {
+                clearInterval(playbackInterval.current);
+            }
+        };
+    }, []);
 
     // Function to load an example drawing
     const loadExample = (exampleType: string) => {
@@ -136,6 +165,11 @@ const AnimationStudio = () => {
         newFrames.splice(currentFrame + 1, 0, newFrameData);
         setFrames(newFrames);
         setCurrentFrame(currentFrame + 1);
+
+        // Autosave if enabled
+        if (autosaveEnabled) {
+            saveFramesToLocalStorage(newFrames);
+        }
     };
 
     // Function to duplicate current frame
@@ -152,6 +186,11 @@ const AnimationStudio = () => {
         newFrames.splice(currentFrame + 1, 0, currentFrameData);
         setFrames(newFrames);
         setCurrentFrame(currentFrame + 1);
+
+        // Autosave if enabled
+        if (autosaveEnabled) {
+            saveFramesToLocalStorage(newFrames);
+        }
     };
 
     // Function to clear the current canvas
@@ -173,6 +212,11 @@ const AnimationStudio = () => {
                 const updatedFrames = [...frames];
                 updatedFrames[currentFrame] = drawingCanvas.toDataURL();
                 setFrames(updatedFrames);
+
+                // Autosave if enabled
+                if (autosaveEnabled) {
+                    saveFramesToLocalStorage(updatedFrames);
+                }
             }
         }
     };
@@ -196,6 +240,75 @@ const AnimationStudio = () => {
         // Update current frame index, ensuring it's within bounds
         const newCurrentFrame = Math.min(currentFrame, newFrames.length - 1);
         setCurrentFrame(newCurrentFrame);
+
+        // Autosave if enabled
+        if (autosaveEnabled) {
+            saveFramesToLocalStorage(newFrames);
+        }
+    };
+
+    // Function to save frames to localStorage
+    const saveFramesToLocalStorage = (framesToSave: string[]) => {
+        if (autosaveEnabled) {
+            try {
+                localStorage.setItem('animationFrames', JSON.stringify(framesToSave));
+                console.log('Frames saved to localStorage');
+            } catch (error) {
+                console.error('Error saving frames to localStorage:', error);
+            }
+        }
+    };
+
+    // Function to load frames from localStorage
+    const loadFramesFromLocalStorage = (): string[] | null => {
+        try {
+            const savedFrames = localStorage.getItem('animationFrames');
+            return savedFrames ? JSON.parse(savedFrames) : null;
+        } catch (error) {
+            console.error('Error loading frames from localStorage:', error);
+            return null;
+        }
+    };
+
+    // Function to play the animation
+    const playAnimation = () => {
+        if (frames.length <= 1) return; // Need at least 2 frames to animate
+
+        setIsPlaying(true);
+
+        // Clear any existing interval
+        if (playbackInterval.current) {
+            clearInterval(playbackInterval.current);
+        }
+
+        // Calculate interval in milliseconds from FPS (1000ms / fps)
+        const intervalMs = Math.max(10, 1000 / fps); // Minimum 10ms to prevent performance issues
+
+        // Set up new interval to advance frames
+        playbackInterval.current = setInterval(() => {
+            setCurrentFrame(prevFrame => {
+                const nextFrame = (prevFrame + 1) % frames.length;
+                return nextFrame;
+            });
+        }, intervalMs);
+    };
+
+    // Function to pause the animation
+    const pauseAnimation = () => {
+        if (playbackInterval.current) {
+            clearInterval(playbackInterval.current);
+            playbackInterval.current = null;
+        }
+        setIsPlaying(false);
+    };
+
+    // Function to toggle play/pause
+    const togglePlayPause = () => {
+        if (isPlaying) {
+            pauseAnimation();
+        } else {
+            playAnimation();
+        }
     };
 
     // Function to change frame
@@ -208,6 +321,11 @@ const AnimationStudio = () => {
         setFrames(updatedFrames);
 
         setCurrentFrame(index);
+
+        // Autosave if enabled
+        if (autosaveEnabled) {
+            saveFramesToLocalStorage(updatedFrames);
+        }
     };
 
     // Function to convert frames to GIF
@@ -366,9 +484,9 @@ const AnimationStudio = () => {
                 className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 translate-x-0"
                 // className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm w-full"
                 onClick={() => {
-                    setShowFrameManager(!showFrameManager);
                     setShowPalette(false);
                 }}
+                aria-label="Frame manager"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
                      viewBox="0 0 24 24" stroke="currentColor">
@@ -430,16 +548,137 @@ const AnimationStudio = () => {
                 </div>
             )}
 
-            {/* Frame Manager Popup */}
-            {showFrameManager && (
+            {/* Always Visible Frame Manager Toolbar */}
+            <div
+                className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-50 w-full max-w-4xl">
+                <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-white font-bold">Frame Manager</h3>
+                </div>
+                <div className="flex flex-col space-y-3">
+                    <div className="flex space-x-2 justify-center">
+                        <button
+                            className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded"
+                            onClick={deleteFrame}
+                            aria-label="Delete frame"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+
+                        <button
+                            className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
+                            onClick={addFrame}
+                            aria-label="Add frame"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                        </button>
+
+                        <button
+                            className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded"
+                            onClick={duplicateFrame}
+                            aria-label="Duplicate frame"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+
+                        <button
+                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded"
+                            onClick={clearCanvas}
+                            aria-label="Clear canvas"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+
+                        <button
+                            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded"
+                            onClick={exportGif}
+                            aria-label="Export as GIF"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                        </button>
+
+                        <button
+                            className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded"
+                            onClick={togglePlayPause}
+                            aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
+                        >
+                            {isPlaying ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                        </button>
+
+                        <div className="flex items-center space-x-2 bg-gray-700 p-2 rounded">
+                            <label htmlFor="fps-control" className="text-white text-sm">FPS:</label>
+                            <input
+                                id="fps-control"
+                                type="number"
+                                min="1"
+                                max="30"
+                                value={fps}
+                                onChange={(e) => setFps(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))}
+                                className="w-12 bg-gray-600 text-white text-sm rounded px-1"
+                                disabled={isPlaying} // Disable when playing to avoid interval issues
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 justify-center max-h-24 overflow-y-auto">
+                        {frames.map((_, index) => (
+                            <button
+                                key={index}
+                                className={`w-10 h-10 rounded ${index === currentFrame ? 'ring-2 ring-blue-400' : ''}`}
+                                onClick={() => changeFrame(index)}
+                                aria-label={`Go to frame ${index + 1}`}
+                            >
+                                <div
+                                    className="w-full h-full bg-gray-200 border border-gray-400 rounded flex items-center justify-center text-xs">
+                                    {index + 1}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="text-white text-sm text-center">
+                        Frame: {currentFrame + 1}/{frames.length}
+                    </div>
+                </div>
+            </div>
+
+            {/* Settings Popup */}
+            {showSettings && (
                 <div
                     className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-60">
                     <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-white font-bold">Frame Manager</h3>
+                        <h3 className="text-white font-bold">Settings</h3>
                         <button
                             className="text-white hover:text-gray-300"
-                            onClick={() => setShowFrameManager(false)}
-                            aria-label="Close frame manager"
+                            onClick={() => setShowSettings(false)}
+                            aria-label="Close settings"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20"
                                  fill="currentColor">
@@ -449,91 +688,37 @@ const AnimationStudio = () => {
                             </svg>
                         </button>
                     </div>
-                    <div className="flex flex-col space-y-3">
-                        <div className="flex space-x-2">
-                            <button
-                                className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded"
-                                onClick={deleteFrame}
-                                aria-label="Delete frame"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                     viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-
-                            <button
-                                className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
-                                onClick={addFrame}
-                                aria-label="Add frame"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                     viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                </svg>
-                            </button>
-
-                            <button
-                                className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded"
-                                onClick={duplicateFrame}
-                                aria-label="Duplicate frame"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                     viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                </svg>
-                            </button>
-
-                            <button
-                                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded"
-                                onClick={clearCanvas}
-                                aria-label="Clear canvas"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                     viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
-
-                            <button
-                                className="bg-green-600 hover:bg-green-700 text-white p-2 rounded"
-                                onClick={exportGif}
-                                aria-label="Export as GIF"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                     viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                            {frames.map((_, index) => (
-                                <button
-                                    key={index}
-                                    className={`w-10 h-10 rounded ${index === currentFrame ? 'ring-2 ring-blue-400' : ''}`}
-                                    onClick={() => changeFrame(index)}
-                                    aria-label={`Go to frame ${index + 1}`}
-                                >
-                                    <div
-                                        className="w-full h-full bg-gray-200 border border-gray-400 rounded flex items-center justify-center text-xs">
-                                        {index + 1}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="text-white text-sm">
-                            Frame: {currentFrame + 1}/{frames.length}
-                        </div>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-white">Autosave to localStorage</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={autosaveEnabled}
+                                onChange={(e) => setAutosaveEnabled(e.target.checked)}
+                            />
+                            <div
+                                className={`w-11 h-6 rounded-full peer ${autosaveEnabled ? 'bg-blue-600' : 'bg-gray-700'} peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
+                        </label>
                     </div>
                 </div>
             )}
+
+            {/* Settings Button */}
+            <button
+                className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 -translate-x-32"
+                onClick={() => {
+                    setShowSettings(!showSettings);
+                }}
+                aria-label={showSettings ? 'Hide settings' : 'Show settings'}
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
 
             {/* Eraser Button */}
             <button
