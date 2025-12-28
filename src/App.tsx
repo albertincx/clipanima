@@ -621,6 +621,12 @@ const AnimationStudio = () => {
 
     // Function to load example grid images
     const loadExampleGrid = (imagePath: string, cellWidth: number, cellHeight: number) => {
+        if (VITE_TEST) {
+            //
+        } else {
+            imagePath = `/clipanima${imagePath}`
+        }
+        console.log(imagePath);
         // Set the grid cell dimensions
         setGridCellWidth(cellWidth);
         setGridCellHeight(cellHeight);
@@ -1134,7 +1140,7 @@ const AnimationStudio = () => {
                             </svg>
                         </button>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
+                    <div className="hidden flex items-center justify-between mt-2">
                         <span className="text-white">Crop Image (in dev)</span>
                         <button
                             className="bg-green-600 hover:bg-green-700 text-white p-2 rounded"
@@ -1246,7 +1252,7 @@ const AnimationStudio = () => {
                             <button
                                 type="button"
                                 className="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded text-sm"
-                                onClick={() => loadExampleGrid('/clipanima/assets/grid_man.jpg', 130, 160)}
+                                onClick={() => loadExampleGrid('/assets/grid_man.jpg', 130, 160)}
                                 aria-label="Load man grid example"
                             >
                                 Man Grid
@@ -1255,7 +1261,7 @@ const AnimationStudio = () => {
                     </div>
 
                     {/* Checkbox items */}
-                    <div className="mb-3">
+                    <div className="hidden mb-3">
                         <div className="flex items-center space-x-2 mb-2">
                             <input
                                 type="checkbox"
