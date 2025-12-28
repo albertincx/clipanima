@@ -27,6 +27,11 @@ const AnimationStudio = () => {
     const [autosaveEnabled, setAutosaveEnabled] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
     const [fps, setFps] = useState(5); // frames per second
+    // State for Load Grid Modal checkboxes
+    const [preserveAspectRatio, setPreserveAspectRatio] = useState(true);
+    const [autoAdjustGrid, setAutoAdjustGrid] = useState(true);
+    // Ref for the grid image file input
+    const gridImageInputRef = useRef<HTMLInputElement>(null);
     // @ts-ignore
     const playbackInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -537,9 +542,31 @@ const AnimationStudio = () => {
                     return;
                 }
 
-                // Calculate how many frames fit in the image
-                const cols = Math.floor(img.width / gridCellWidth);
-                const rows = Math.floor(img.height / gridCellHeight);
+                // Use checkbox states to determine behavior
+                let cellWidth = gridCellWidth;
+                let cellHeight = gridCellHeight;
+                let cols, rows;
+
+                // If auto-adjust grid is enabled, calculate optimal cell size
+                if (autoAdjustGrid) {
+                    // Calculate how many cells fit in the image based on the specified dimensions
+                    cols = Math.floor(img.width / gridCellWidth);
+                    rows = Math.floor(img.height / gridCellHeight);
+
+                    if (cols > 0 && rows > 0) {
+                        // Adjust cell dimensions to evenly divide the image
+                        cellWidth = Math.floor(img.width / cols);
+                        cellHeight = Math.floor(img.height / rows);
+                    } else {
+                        // Fallback to original dimensions if calculation fails
+                        cols = Math.floor(img.width / cellWidth);
+                        rows = Math.floor(img.height / cellHeight);
+                    }
+                } else {
+                    // Use original specified dimensions
+                    cols = Math.floor(img.width / cellWidth);
+                    rows = Math.floor(img.height / cellHeight);
+                }
 
                 if (cols <= 0 || rows <= 0) {
                     alert('Cell size is too large for the image or invalid dimensions');
@@ -553,20 +580,20 @@ const AnimationStudio = () => {
                 for (let row = 0; row < rows; row++) {
                     for (let col = 0; col < cols; col++) {
                         // Set canvas size to match cell dimensions
-                        tempCanvas.width = gridCellWidth;
-                        tempCanvas.height = gridCellHeight;
+                        tempCanvas.width = cellWidth;
+                        tempCanvas.height = cellHeight;
 
                         // Draw the specific cell area onto the temporary canvas
                         tempCtx.drawImage(
                             img,
-                            col * gridCellWidth,
-                            row * gridCellHeight,
-                            gridCellWidth,
-                            gridCellHeight,
+                            col * cellWidth,
+                            row * cellHeight,
+                            cellWidth,
+                            cellHeight,
                             0,
                             0,
-                            gridCellWidth,
-                            gridCellHeight
+                            cellWidth,
+                            cellHeight
                         );
 
                         // Convert to data URL and add to frames
@@ -592,6 +619,108 @@ const AnimationStudio = () => {
         reader.readAsDataURL(file);
     };
 
+    // Function to load example grid images
+    const loadExampleGrid = (imagePath: string, cellWidth: number, cellHeight: number) => {
+        // Set the grid cell dimensions
+        setGridCellWidth(cellWidth);
+        setGridCellHeight(cellHeight);
+
+        // Create image element to load the example
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // Handle CORS if needed
+        img.onload = () => {
+            // Show confirmation dialog
+            if (!window.confirm(`Are you sure you want to load frames from this example image? This will replace all current frames (${frames.length} frames will be deleted).`)) {
+                setShowLoadGridModal(false);
+                return;
+            }
+
+            // Create temporary canvas to extract frames
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+
+            if (!tempCtx) {
+                alert('Could not create canvas context');
+                setShowLoadGridModal(false);
+                return;
+            }
+
+            // Use checkbox states to determine behavior
+            let finalCellWidth = cellWidth;
+            let finalCellHeight = cellHeight;
+            let cols, rows;
+
+            // If auto-adjust grid is enabled, calculate optimal cell size
+            if (autoAdjustGrid) {
+                // Calculate how many cells fit in the image based on the specified dimensions
+                cols = Math.floor(img.width / cellWidth);
+                rows = Math.floor(img.height / cellHeight);
+
+                if (cols > 0 && rows > 0) {
+                    // Adjust cell dimensions to evenly divide the image
+                    finalCellWidth = Math.floor(img.width / cols);
+                    finalCellHeight = Math.floor(img.height / rows);
+                } else {
+                    // Fallback to original dimensions if calculation fails
+                    cols = Math.floor(img.width / finalCellWidth);
+                    rows = Math.floor(img.height / finalCellHeight);
+                }
+            } else {
+                // Use original specified dimensions
+                cols = Math.floor(img.width / finalCellWidth);
+                rows = Math.floor(img.height / finalCellHeight);
+            }
+
+            if (cols <= 0 || rows <= 0) {
+                alert('Cell size is too large for the image or invalid dimensions');
+                setShowLoadGridModal(false);
+                return;
+            }
+
+            const newFrames: string[] = [];
+
+            // Extract each frame from the grid
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    // Set canvas size to match cell dimensions
+                    tempCanvas.width = finalCellWidth;
+                    tempCanvas.height = finalCellHeight;
+
+                    // Draw the specific cell area onto the temporary canvas
+                    tempCtx.drawImage(
+                        img,
+                        col * finalCellWidth,
+                        row * finalCellHeight,
+                        finalCellWidth,
+                        finalCellHeight,
+                        0,
+                        0,
+                        finalCellWidth,
+                        finalCellHeight
+                    );
+
+                    // Convert to data URL and add to frames
+                    const frameData = tempCanvas.toDataURL('image/png');
+                    newFrames.push(frameData);
+                }
+            }
+
+            // Update the frames state
+            setFrames(newFrames);
+            setCurrentFrame(0);
+
+            // Close the modal
+            setShowLoadGridModal(false);
+
+            // Autosave if enabled
+            if (autosaveEnabled) {
+                saveFramesToLocalStorage(newFrames);
+            }
+        };
+
+        img.src = imagePath;
+    };
+
     // Function to handle cropped image
     const handleCropComplete = (croppedImage: any) => {
         console.log(croppedImage);
@@ -599,30 +728,31 @@ const AnimationStudio = () => {
         setGridCellHeight(croppedImage.h);
         return
         // Update the current frame with the cropped image
-        const updatedFrames = [...frames];
-        updatedFrames[currentFrame] = croppedImage;
-        setFrames(updatedFrames);
-
-        // Update the canvas to show the cropped image
-        if ((window as any).drawingCanvas) {
-            const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
-            const ctx = drawingCanvas.getContext('2d');
-            if (ctx) {
-                const img = new Image();
-                img.onload = () => {
-                    // Clear the canvas and draw the cropped image
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                    ctx.drawImage(img, 0, 0, drawingCanvas.width, drawingCanvas.height);
-                };
-                img.src = croppedImage;
-            }
-        }
-
-        // Autosave if enabled
-        if (autosaveEnabled) {
-            saveFramesToLocalStorage(updatedFrames);
-        }
+        // const updatedFrames = [...frames];
+        // updatedFrames[currentFrame] = croppedImage;
+        // setFrames(updatedFrames);
+        //
+        // // Update the canvas to show the cropped image
+        // if ((window as any).drawingCanvas) {
+        //     const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+        //     const ctx = drawingCanvas.getContext('2d');
+        //     if (ctx) {
+        //         const img = new Image();
+        //         img.onload = () => {
+        //             // Clear the canvas and draw the cropped image
+        //             const canvasCtx = ctx; // Capture context to avoid TypeScript error
+        //             canvasCtx.fillStyle = 'white';
+        //             canvasCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        //             canvasCtx.drawImage(img, 0, 0, drawingCanvas.width, drawingCanvas.height);
+        //         };
+        //         img.src = croppedImage;
+        //     }
+        // }
+        //
+        // // Autosave if enabled
+        // if (autosaveEnabled) {
+        //     saveFramesToLocalStorage(updatedFrames);
+        // }
     };
 
     // Function to process the image
@@ -1101,18 +1231,81 @@ const AnimationStudio = () => {
                     <div className="mb-3">
                         <label className="block text-white mb-1">Select Grid Image:</label>
                         <input
+                            ref={gridImageInputRef}
                             type="file"
                             accept="image/*"
                             onChange={handleGridImageUpload}
                             className="w-full text-white"
                         />
                     </div>
+
+                    {/* Example buttons */}
+                    <div className="mb-3">
+                        <label className="block text-white mb-2">Example Grids:</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                className="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded text-sm"
+                                onClick={() => loadExampleGrid('/assets/grid_man.jpg', 130, 160)}
+                                aria-label="Load man grid example"
+                            >
+                                Man Grid
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Checkbox items */}
+                    <div className="mb-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                            <input
+                                type="checkbox"
+                                id="preserveAspectRatio"
+                                checked={preserveAspectRatio}
+                                onChange={(e) => setPreserveAspectRatio(e.target.checked)}
+                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="preserveAspectRatio" className="text-gray-300">
+                                Preserve aspect ratio
+                            </label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="autoAdjustGrid"
+                                checked={autoAdjustGrid}
+                                onChange={(e) => setAutoAdjustGrid(e.target.checked)}
+                                className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                            />
+                            <label htmlFor="autoAdjustGrid" className="text-gray-300">
+                                Auto-adjust grid size
+                            </label>
+                        </div>
+                    </div>
+
                     <div className="flex justify-end space-x-2">
                         <button
                             className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded"
                             onClick={() => setShowLoadGridModal(false)}
                         >
                             Cancel
+                        </button>
+                        <button
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+                            onClick={() => {
+                                // OK button functionality - trigger the file input's change event
+                                if (gridImageInputRef.current && gridImageInputRef.current.files && gridImageInputRef.current.files.length > 0) {
+                                    // Create a new event to trigger the onChange handler
+                                    const event = {
+                                        target: gridImageInputRef.current
+                                    } as React.ChangeEvent<HTMLInputElement>;
+                                    handleGridImageUpload(event);
+                                } else {
+                                    alert('Please select an image file first.');
+                                }
+                            }}
+                        >
+                            OK
                         </button>
                     </div>
                 </div>
