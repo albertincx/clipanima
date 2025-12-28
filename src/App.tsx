@@ -291,6 +291,12 @@ const AnimationStudio = () => {
         playbackInterval.current = setInterval(() => {
             setCurrentFrame(prevFrame => {
                 const nextFrame = (prevFrame + 1) % frames.length;
+                // const nextFrame = prevFrame + 1;
+                // if (nextFrame >= frames.length) {
+                //     // Stop animation when reaching the last frame
+                //     pauseAnimation();
+                //     return frames.length - 1; // Return index of last frame
+                // }
                 return nextFrame;
             });
         }, intervalMs);
@@ -310,6 +316,11 @@ const AnimationStudio = () => {
         if (isPlaying) {
             pauseAnimation();
         } else {
+            // changeFrame(0)
+            // If we're at the last frame and want to play again, go back to first frame
+            if (currentFrame === frames.length - 1) {
+                changeFrame(0);
+            }
             playAnimation();
         }
     };
