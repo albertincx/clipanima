@@ -7,6 +7,7 @@ const AnimationStudio = () => {
     const [showPalette, setShowPalette] = useState(false);
     const [showExamples, setShowExamples] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showFrames, setShowFrames] = useState(true);
     const [showLoadModal, setShowLoadModal] = useState(false);
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(8);
@@ -379,17 +380,11 @@ const AnimationStudio = () => {
         }
 
         // Show confirmation dialog
-        if (!window.confirm('Are you sure you want to export this animation as a GIF? This may take a moment.')) {
+        if (!window.confirm('Are you sure you want to export this animation as a MP4? This may take a moment.')) {
             return;
         }
 
         try {
-            // Show loading indicator
-            // alert('Preparing GIF export... This may take a moment.');
-
-            // Load ffmpeg if not already loaded
-            // const ffmpeg = await loadFFmpeg();
-            const ffmpeg = {};
             console.log('frames')
             console.log(frames)
             // ffmpeg.on('log', (m: any) => {
@@ -527,6 +522,7 @@ const AnimationStudio = () => {
                 className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 translate-x-0"
                 // className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm w-full"
                 onClick={() => {
+                    setShowFrames(!showFrames);
                     setShowPalette(false);
                 }}
                 aria-label="Frame manager"
@@ -592,145 +588,136 @@ const AnimationStudio = () => {
             )}
 
             {/* Always Visible Frame Manager Toolbar */}
-            <div
-                className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-50 w-full max-w-4xl">
-                <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-white font-bold">Frame Manager</h3>
-                </div>
-                <div className="flex flex-col space-y-3">
-                    <div className="flex space-x-2 justify-center">
-                        <button
-                            className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded"
-                            onClick={deleteFrame}
-                            aria-label="Delete frame"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-
-                        <button
-                            className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
-                            onClick={addFrame}
-                            aria-label="Add frame"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
-                        </button>
-
-                        <button
-                            className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded"
-                            onClick={duplicateFrame}
-                            aria-label="Duplicate frame"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                            </svg>
-                        </button>
-
-                        <button
-                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded"
-                            onClick={clearCanvas}
-                            aria-label="Clear canvas"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-
-                        <button
-                            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded"
-                            onClick={exportGif}
-                            aria-label="Export as GIF"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                 viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                            </svg>
-                        </button>
-
-                        <button
-                            className="bg-teal-500 hover:bg-teal-600 text-white p-2 rounded"
-                            onClick={saveFrame}
-                            aria-label="Save current frame"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                            </svg>
-                        </button>
-
-                        <button
-                            className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded"
-                            onClick={togglePlayPause}
-                            aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
-                        >
-                            {isPlaying ? (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+            {showFrames && (
+                <div
+                    className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-50 w-full max-w-4xl">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-white font-bold">Frame Manager</h3>
+                    </div>
+                    <div className="flex flex-col space-y-3">
+                        <div className="flex space-x-2 justify-center">
+                            <button
+                                className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
+                                onClick={addFrame}
+                                aria-label="Add frame"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                 </svg>
-                            ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                                </svg>
-                            )}
-                        </button>
+                            </button>
 
-                        <div className="flex items-center space-x-2 bg-gray-700 p-2 rounded">
-                            <label htmlFor="fps-control" className="text-white text-sm">FPS:</label>
-                            <input
-                                id="fps-control"
-                                type="number"
-                                min="1"
-                                max="30"
-                                value={fps}
-                                onChange={(e) => setFps(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))}
-                                className="w-12 bg-gray-600 text-white text-sm rounded px-1"
-                                disabled={isPlaying} // Disable when playing to avoid interval issues
-                            />
+                            <button
+                                className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded"
+                                onClick={duplicateFrame}
+                                aria-label="Duplicate frame"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </button>
+
+                            <button
+                                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded"
+                                onClick={clearCanvas}
+                                aria-label="Clear canvas"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+
+                            <button
+                                className="bg-teal-500 hover:bg-teal-600 text-white p-2 rounded"
+                                onClick={saveFrame}
+                                aria-label="Save current frame"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                          d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                                </svg>
+                            </button>
+
+                            <button
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded"
+                                onClick={togglePlayPause}
+                                aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
+                            >
+                                {isPlaying ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20"
+                                         fill="currentColor">
+                                        <path fillRule="evenodd"
+                                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                              clipRule="evenodd"/>
+                                    </svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20"
+                                         fill="currentColor">
+                                        <path fillRule="evenodd"
+                                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                                              clipRule="evenodd"/>
+                                    </svg>
+                                )}
+                            </button>
+
+                            <div className="flex items-center space-x-2 bg-gray-700 p-2 rounded">
+                                <label htmlFor="fps-control" className="text-white text-sm">FPS:</label>
+                                <input
+                                    id="fps-control"
+                                    type="number"
+                                    min="1"
+                                    max="30"
+                                    value={fps}
+                                    onChange={(e) => setFps(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))}
+                                    className="w-12 bg-gray-600 text-white text-sm rounded px-1"
+                                    disabled={isPlaying} // Disable when playing to avoid interval issues
+                                />
+                            </div>
                         </div>
 
-                        <button
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded"
-                            onClick={() => setShowLoadModal(true)}
-                            aria-label="Load frames"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                            </svg>
-                        </button>
-                    </div>
+                        <div className="flex flex-wrap gap-1 justify-center max-h-24 overflow-y-auto">
+                            {frames.map((_, index) => (
+                                <button
+                                    key={index}
+                                    className={`w-10 h-10 rounded ${index === currentFrame ? 'ring-2 ring-blue-400' : ''}`}
+                                    onClick={() => changeFrame(index)}
+                                    aria-label={`Go to frame ${index + 1}`}
+                                >
+                                    <div
+                                        className="w-full h-full bg-gray-200 border border-gray-400 rounded flex items-center justify-center text-xs">
+                                        {index + 1}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
 
-                    <div className="flex flex-wrap gap-1 justify-center max-h-24 overflow-y-auto">
-                        {frames.map((_, index) => (
+                        <div className="flex items-center justify-between text-white text-sm text-center">
+                            <div>
+                                Frame: {currentFrame + 1}/{frames.length}
+                            </div>
                             <button
-                                key={index}
-                                className={`w-10 h-10 rounded ${index === currentFrame ? 'ring-2 ring-blue-400' : ''}`}
-                                onClick={() => changeFrame(index)}
-                                aria-label={`Go to frame ${index + 1}`}
+                                className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded"
+                                onClick={deleteFrame}
+                                aria-label="Delete frame"
                             >
-                                <div
-                                    className="w-full h-full bg-gray-200 border border-gray-400 rounded flex items-center justify-center text-xs">
-                                    {index + 1}
-                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                     viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
                             </button>
-                        ))}
-                    </div>
+                        </div>
 
-                    <div className="text-white text-sm text-center">
-                        Frame: {currentFrame + 1}/{frames.length}
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Settings Popup */}
             {showSettings && (
@@ -764,6 +751,37 @@ const AnimationStudio = () => {
                                 className={`w-11 h-6 rounded-full peer ${autosaveEnabled ? 'bg-blue-600' : 'bg-gray-700'} peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                         </label>
                     </div>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-white">LOAD FRAMES</span>
+                        <button
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded"
+                            onClick={() => {
+                                setShowSettings(false)
+                                setShowLoadModal(true)
+                            }}
+                            aria-label="Load frames"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-white">Save as MP4</span>
+                        <button
+                            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded"
+                            onClick={exportGif}
+                            aria-label="Export as MP4"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                 viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -778,8 +796,9 @@ const AnimationStudio = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
                      stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
             </button>
 
