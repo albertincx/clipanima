@@ -38,6 +38,9 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_BUILD_PATH: dist
+          VITE_PUBLIC_BASE_URL: /clipanima/
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
