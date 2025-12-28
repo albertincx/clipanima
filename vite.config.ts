@@ -77,6 +77,7 @@ export default ({mode}) => {
 
     // @ts-ignore
     return defineConfig({
+        // @ts-ignore
         base: process.env.VITE_PUBLIC_BASE_URL || '/',
         define: {
             __BUILD__: curTime,
@@ -116,6 +117,7 @@ export default ({mode}) => {
                 transformIndexHtml: {
                     order: 'post',
                     handler: (html) => {
+                        // @ts-ignore
                         const baseUrl = process.env.VITE_PUBLIC_BASE_URL || '/';
                         if (baseUrl !== '/') {
                             // Inject base tag after <head>
