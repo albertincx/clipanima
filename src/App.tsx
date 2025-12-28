@@ -815,7 +815,7 @@ const AnimationStudio = () => {
             </button>
             {!!frames2.length && (
                 <FramesToMp4Downloader
-                    frames={frames2} fps={10} width={512} height={512}
+                    frames={frames2} fps={fps} width={512} height={512}
                     clearFrames={() => setFrames2([])}
                 />
             )}
