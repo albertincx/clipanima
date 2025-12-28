@@ -1,11 +1,13 @@
 import React, {useEffect, useRef, useState} from 'react';
 import initZoom from './initZoom'
 import {FramesToMp4Downloader} from "./FramesToMp4Downloader";
+import LoadFramesModal from "./LoadFramesModal";
 
 const AnimationStudio = () => {
     const [showPalette, setShowPalette] = useState(false);
     const [showExamples, setShowExamples] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showLoadModal, setShowLoadModal] = useState(false);
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(8);
     const [frames, setFrames] = useState<string[]>([]); // Store frames as base64 images
@@ -328,6 +330,47 @@ const AnimationStudio = () => {
         }
     };
 
+    // Function to load frames from external source
+    const loadFrames = (newFrames: string[]) => {
+        // Save the current frame before replacing
+        if (frames.length > 0) {
+            const updatedFrames = [...frames];
+            updatedFrames[currentFrame] = getCanvasData();
+            setFrames(updatedFrames);
+        }
+
+        // Replace current frames with new frames
+        setFrames(newFrames);
+        setCurrentFrame(0);
+
+        // Update canvas to show the first frame
+        if (newFrames.length > 0) {
+            setCanvasData(newFrames[0]);
+        }
+
+        // Autosave if enabled
+        if (autosaveEnabled) {
+            saveFramesToLocalStorage(newFrames);
+        }
+    };
+
+    // Function to save the current frame as an image file
+    const saveFrame = () => {
+        const currentFrameData = getCanvasData();
+        if (!currentFrameData) {
+            alert('No frame data to save');
+            return;
+        }
+
+        // Create a temporary link element
+        const link = document.createElement('a');
+        link.href = currentFrameData;
+        link.download = `frame_${currentFrame + 1}.png`; // Name the file based on current frame number
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     // Function to convert frames to GIF
     const exportGif = async () => {
         if (frames.length === 0) {
@@ -617,6 +660,16 @@ const AnimationStudio = () => {
                         </button>
 
                         <button
+                            className="bg-teal-500 hover:bg-teal-600 text-white p-2 rounded"
+                            onClick={saveFrame}
+                            aria-label="Save current frame"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
+                        </button>
+
+                        <button
                             className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded"
                             onClick={togglePlayPause}
                             aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
@@ -645,6 +698,16 @@ const AnimationStudio = () => {
                                 disabled={isPlaying} // Disable when playing to avoid interval issues
                             />
                         </div>
+
+                        <button
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded"
+                            onClick={() => setShowLoadModal(true)}
+                            aria-label="Load frames"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                        </button>
                     </div>
 
                     <div className="flex flex-wrap gap-1 justify-center max-h-24 overflow-y-auto">
@@ -737,6 +800,13 @@ const AnimationStudio = () => {
                     clearFrames={() => setFrames2([])}
                 />
             )}
+
+            <LoadFramesModal
+                isOpen={showLoadModal}
+                onClose={() => setShowLoadModal(false)}
+                onLoadFrames={loadFrames}
+                currentFrameCount={frames.length}
+            />
         </div>
     );
 };
