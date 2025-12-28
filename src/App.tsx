@@ -1,7 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
+
 import initZoom from './initZoom'
+
 import {FramesToMp4Downloader} from "./FramesToMp4Downloader";
 import LoadFramesModal from "./LoadFramesModal";
+import Crop from "./components/Crop";
 
 const AnimationStudio = () => {
     const [showPalette, setShowPalette] = useState(false);
@@ -10,6 +13,10 @@ const AnimationStudio = () => {
     const [showFrames, setShowFrames] = useState(true);
     const [showLoadModal, setShowLoadModal] = useState(false);
     const [showCustomFps, setShowCustomFps] = useState(false);
+    const [showLoadGridModal, setShowLoadGridModal] = useState(false);
+    const [gridCellWidth, setGridCellWidth] = useState(64);
+    const [gridCellHeight, setGridCellHeight] = useState(64);
+    const [showCropModal, setShowCropModal] = useState(false);
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [brushSize, setBrushSize] = useState(8);
     const [frames, setFrames] = useState<string[]>([]); // Store frames as base64 images
@@ -505,6 +512,129 @@ const AnimationStudio = () => {
         }
     };
 
+    // Function to handle grid image upload
+    const handleGridImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                // Show confirmation dialog
+                if (!window.confirm(`Are you sure you want to load frames from this image? This will replace all current frames (${frames.length} frames will be deleted).`)) {
+                    setShowLoadGridModal(false);
+                    return;
+                }
+
+                // Create temporary canvas to extract frames
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+
+                if (!tempCtx) {
+                    alert('Could not create canvas context');
+                    setShowLoadGridModal(false);
+                    return;
+                }
+
+                // Calculate how many frames fit in the image
+                const cols = Math.floor(img.width / gridCellWidth);
+                const rows = Math.floor(img.height / gridCellHeight);
+
+                if (cols <= 0 || rows <= 0) {
+                    alert('Cell size is too large for the image or invalid dimensions');
+                    setShowLoadGridModal(false);
+                    return;
+                }
+
+                const newFrames: string[] = [];
+
+                // Extract each frame from the grid
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        // Set canvas size to match cell dimensions
+                        tempCanvas.width = gridCellWidth;
+                        tempCanvas.height = gridCellHeight;
+
+                        // Draw the specific cell area onto the temporary canvas
+                        tempCtx.drawImage(
+                            img,
+                            col * gridCellWidth,
+                            row * gridCellHeight,
+                            gridCellWidth,
+                            gridCellHeight,
+                            0,
+                            0,
+                            gridCellWidth,
+                            gridCellHeight
+                        );
+
+                        // Convert to data URL and add to frames
+                        const frameData = tempCanvas.toDataURL('image/png');
+                        newFrames.push(frameData);
+                    }
+                }
+
+                // Update the frames state
+                setFrames(newFrames);
+                setCurrentFrame(0);
+
+                // Close the modal
+                setShowLoadGridModal(false);
+
+                // Autosave if enabled
+                if (autosaveEnabled) {
+                    saveFramesToLocalStorage(newFrames);
+                }
+            };
+            img.src = event.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // Function to handle cropped image
+    const handleCropComplete = (croppedImage: any) => {
+        console.log(croppedImage);
+        setGridCellWidth(croppedImage.w);
+        setGridCellHeight(croppedImage.h);
+        return
+        // Update the current frame with the cropped image
+        const updatedFrames = [...frames];
+        updatedFrames[currentFrame] = croppedImage;
+        setFrames(updatedFrames);
+
+        // Update the canvas to show the cropped image
+        if ((window as any).drawingCanvas) {
+            const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+            const ctx = drawingCanvas.getContext('2d');
+            if (ctx) {
+                const img = new Image();
+                img.onload = () => {
+                    // Clear the canvas and draw the cropped image
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx.drawImage(img, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                };
+                img.src = croppedImage;
+            }
+        }
+
+        // Autosave if enabled
+        if (autosaveEnabled) {
+            saveFramesToLocalStorage(updatedFrames);
+        }
+    };
+
+    // Function to process the image
+    // const processImage = () => {
+    //     const fileInput = gridImageInputRef.current;
+    //     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    //         alert('Please select an image file first');
+    //         return;
+    //     }
+    //
+    //     handleImageUpload({target: fileInput} as unknown as React.ChangeEvent<HTMLInputElement>);
+    // };
     // return null
     return (
         <div className="fixed inset-0 bg-gray-900 overflow-hidden">
@@ -860,6 +990,34 @@ const AnimationStudio = () => {
                             </svg>
                         </button>
                     </div>
+                    <div className="flex items-center justify-between mt-2">
+                        <span className="text-white">Load Grid (in dev)</span>
+                        <button
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded"
+                            onClick={() => setShowLoadGridModal(true)}
+                            aria-label="Load frames from grid"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                        <span className="text-white">Crop Image (in dev)</span>
+                        <button
+                            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded"
+                            onClick={() => setShowCropModal(true)}
+                            aria-label="Crop image"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -897,6 +1055,93 @@ const AnimationStudio = () => {
                                 {num}
                             </button>
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Load Grid Modal */}
+            {showLoadGridModal && (
+                <div
+                    className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-70 w-96">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-white font-bold">Load Frames from Grid</h3>
+                        <button
+                            className="text-white hover:text-gray-300"
+                            onClick={() => setShowLoadGridModal(false)}
+                            aria-label="Close load grid"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20"
+                                 fill="currentColor">
+                                <path fillRule="evenodd"
+                                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                      clipRule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="mb-3">
+                        <label className="block text-white mb-1">Cell Width (px):</label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={gridCellWidth}
+                            onChange={(e) => setGridCellWidth(parseInt(e.target.value) || 1)}
+                            className="w-full bg-gray-700 text-white p-2 rounded"
+                        />
+                    </div>
+                    <div className="mb-3">
+                        <label className="block text-white mb-1">Cell Height (px):</label>
+                        <input
+                            type="number"
+                            min="1"
+                            value={gridCellHeight}
+                            onChange={(e) => setGridCellHeight(parseInt(e.target.value) || 1)}
+                            className="w-full bg-gray-700 text-white p-2 rounded"
+                        />
+                    </div>
+                    <div className="mb-3">
+                        <label className="block text-white mb-1">Select Grid Image:</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleGridImageUpload}
+                            className="w-full text-white"
+                        />
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                        <button
+                            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded"
+                            onClick={() => setShowLoadGridModal(false)}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {showCropModal && (
+                <div
+                    className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-70 w-full max-w-4xl h-3/4 max-h-[80vh] overflow-auto">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-white font-bold">Crop Image</h3>
+                        <button
+                            className="text-white hover:text-gray-300"
+                            onClick={() => setShowCropModal(false)}
+                            aria-label="Close crop"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20"
+                                 fill="currentColor">
+                                <path fillRule="evenodd"
+                                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                      clipRule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="h-[70vh]">
+                        <Crop
+                            defaultSrc={frames[currentFrame] || ''}
+                            onCropComplete={handleCropComplete}
+                            onClose={() => setShowCropModal(false)}
+                        />
                     </div>
                 </div>
             )}

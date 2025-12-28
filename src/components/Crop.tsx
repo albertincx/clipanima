@@ -6,7 +6,7 @@ import "./crop.css";
 
 interface CropProps {
     defaultSrc: string;
-    onCropComplete?: (croppedImage: string) => void;
+    onCropComplete?: (croppedImage: any) => void;
     onClose?: () => void;
 }
 
@@ -32,11 +32,17 @@ export const Crop: React.FC<CropProps> = ({defaultSrc, onCropComplete, onClose})
     const getCropData = () => {
         if (typeof cropperRef.current?.cropper !== "undefined") {
             const croppedDataUrl = cropperRef.current?.cropper.getCroppedCanvas().toDataURL();
+            // console.log(cropperRef.current?.cropper)
+            // console.log(cropperRef.current?.cropper.getCroppedCanvas().width)
             setCropData(croppedDataUrl);
 
             // If a callback is provided, call it with the cropped image
             if (onCropComplete) {
-                onCropComplete(croppedDataUrl);
+                onCropComplete({
+                    croppedDataUrl,
+                    w: cropperRef.current?.cropper.getCroppedCanvas().width,
+                    h: cropperRef.current?.cropper.getCroppedCanvas().height,
+                });
             }
         }
     };
