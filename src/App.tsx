@@ -212,11 +212,6 @@ const AnimationStudio = () => {
         newFrames.splice(currentFrame + 1, 0, newFrameData);
         setFrames(newFrames);
         setCurrentFrame(currentFrame + 1);
-
-        // Autosave if enabled
-        if (autosaveEnabled) {
-            saveFramesToLocalStorage(newFrames);
-        }
     };
 
     // Function to duplicate current frame
@@ -387,11 +382,6 @@ const AnimationStudio = () => {
         setFrames(updatedFrames);
 
         setCurrentFrame(index);
-
-        // Autosave if enabled
-        if (autosaveEnabled) {
-            saveFramesToLocalStorage(updatedFrames);
-        }
     };
 
     // Function to load frames from external source
@@ -840,53 +830,6 @@ const AnimationStudio = () => {
                 </div>
             )}
 
-            {/* Toggle Palette Button */}
-            <button
-                className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 -translate-x-16"
-                onClick={() => {
-                    setShowPalette(!showPalette);
-                    if (showExamples) setShowExamples(false); // Close examples if open
-                }}
-                aria-label={showPalette ? 'Hide color palette' : 'Show color palette'}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
-                </svg>
-            </button>
-
-            <button
-                className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 translate-x-0"
-                // className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm w-full"
-                onClick={() => {
-                    setShowFrames(!showFrames);
-                    setShowPalette(false);
-                }}
-                aria-label="Frame manager"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
-                     viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                </svg>
-            </button>
-
-            {/* Examples Button */}
-            <button
-                className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 translate-x-16"
-                onClick={() => {
-                    setShowExamples(!showExamples);
-                    if (showPalette) setShowPalette(false); // Close palette if open
-                }}
-                aria-label={showExamples ? 'Hide examples' : 'Show examples'}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                </svg>
-            </button>
 
             {/* Examples Popup */}
             {showExamples && (
@@ -1027,21 +970,23 @@ const AnimationStudio = () => {
                             </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-1 justify-center max-h-24 overflow-y-auto">
-                            {frames.map((_, index) => (
-                                <button
-                                    key={index}
-                                    className={`w-10 h-10 rounded ${index === currentFrame ? 'ring-2 ring-blue-400' : ''}`}
-                                    onClick={() => changeFrame(index)}
-                                    aria-label={`Go to frame ${index + 1}`}
-                                >
-                                    <div
-                                        className="w-full h-full bg-gray-200 border border-gray-400 rounded flex items-center justify-center text-xs">
-                                        {index + 1}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                        {frames.length > 1 && (
+                            <div className="flex flex-wrap gap-1 justify-center max-h-24 overflow-y-auto">
+                                {frames.map((_, index) => (
+                                    <button
+                                        key={index}
+                                        className={`w-10 h-10 rounded ${index === currentFrame ? 'ring-2 ring-blue-400' : ''}`}
+                                        onClick={() => changeFrame(index)}
+                                        aria-label={`Go to frame ${index + 1}`}
+                                    >
+                                        <div
+                                            className="w-full h-full bg-gray-200 border border-gray-400 rounded flex items-center justify-center text-xs">
+                                            {index + 1}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         <div className="flex items-center justify-between text-white text-sm text-center">
                             <div>
@@ -1406,36 +1351,87 @@ const AnimationStudio = () => {
                 </div>
             )}
 
-            {/* Settings Button */}
-            <button
-                className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 -translate-x-32"
-                onClick={() => {
-                    setShowSettings(!showSettings);
-                }}
-                aria-label={showSettings ? 'Hide settings' : 'Show settings'}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-            </button>
+            {/* Bottom Panel */}
+            <div
+                className="fixed bottom-0 left-0 right-0 p-4 bg-gray-800/90 backdrop-blur-sm z-60 overflow-x-auto flex flex-col items-center">
+                <div className="flex items-center space-x-4 min-w-max pb-2">
+                    {/* Settings Button */}
+                    <button
+                        className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg"
+                        onClick={() => {
+                            setShowSettings(!showSettings);
+                        }}
+                        aria-label={showSettings ? 'Hide settings' : 'Show settings'}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </button>
 
-            {/* Eraser Button */}
-            <button
-                className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 translate-x-32 ${isEraser ? 'ring-2 ring-yellow-400' : ''}`}
-                onClick={() => setIsEraser(!isEraser)}
-                aria-label={isEraser ? 'Switch to drawing mode' : 'Switch to eraser mode'}
-            >
-                <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
-                     width="24" height="24" viewBox="0 0 512.000000 512.000000"
-                     preserveAspectRatio="xMidYMid meet">
+                    {/* Toggle Palette Button */}
+                    <button
+                        className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg"
+                        onClick={() => {
+                            setShowPalette(!showPalette);
+                            if (showExamples) setShowExamples(false); // Close examples if open
+                        }}
+                        aria-label={showPalette ? 'Hide color palette' : 'Show color palette'}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                    </button>
 
-                    <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
-                       fill="#ffffff" stroke="none">
-                        <path d="M3140 4826 c-36 -8 -98 -27 -139 -42 -161 -60 -144 -44 -1369 -1267
+                    <button
+                        className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg"
+                        onClick={() => {
+                            setShowFrames(!showFrames);
+                            setShowPalette(false);
+                        }}
+                        aria-label="Frame manager"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+
+                    {/* Examples Button */}
+                    <button
+                        className="bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg"
+                        onClick={() => {
+                            setShowExamples(!showExamples);
+                            if (showPalette) setShowPalette(false); // Close palette if open
+                        }}
+                        aria-label={showExamples ? 'Hide examples' : 'Show examples'}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+                        </svg>
+                    </button>
+
+                    {/* Eraser Button */}
+                    <button
+                        className={`bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg ${isEraser ? 'ring-2 ring-yellow-400' : ''}`}
+                        onClick={() => setIsEraser(!isEraser)}
+                        aria-label={isEraser ? 'Switch to drawing mode' : 'Switch to eraser mode'}
+                    >
+                        <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+                             width="24" height="24" viewBox="0 0 512.000000 512.000000"
+                             preserveAspectRatio="xMidYMid meet">
+
+                            <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
+                               fill="#ffffff" stroke="none">
+                                <path d="M3140 4826 c-36 -8 -98 -27 -139 -42 -161 -60 -144 -44 -1369 -1267
 -629 -628 -1163 -1167 -1186 -1197 -232 -298 -227 -703 12 -1001 75 -93 830
 -843 897 -891 130 -92 258 -135 440 -148 72 -5 712 -9 1423 -10 1441 0 1334
 -5 1390 68 22 29 27 46 27 93 0 62 -17 94 -69 133 -27 21 -37 21 -1062 26
@@ -1451,47 +1447,49 @@ m-1825 -1680 l150 -150 -560 -560 c-308 -308 -564 -559 -570 -557 -5 2 -27 37
 190 557 557 c307 307 562 558 568 558 6 0 93 -83 195 -185z m301 -1119 c-422
 -422 -464 -458 -581 -493 -121 -38 -292 -14 -394 53 l-39 26 559 559 559 559
 150 -150 150 -150 -404 -404z"/>
-                    </g>
-                </svg>
-            </button>
+                            </g>
+                        </svg>
+                    </button>
 
-            {/* Move Mode Button */}
-            {frames.length > 1 && currentFrame !== 0 && (
-                <button
-                    className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 translate-x-48 ${isMoveMode ? 'ring-2 ring-yellow-400' : ''}`}
-                    onClick={() => setIsMoveMode(!isMoveMode)}
-                    aria-label={isMoveMode ? 'Switch to drawing mode' : 'Switch to move mode'}
-                >
-                    <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
-                         width="24" height="24" viewBox="0 0 512.000000 512.000000"
-                         preserveAspectRatio="xMidYMid meet">
+                    {/* Move Mode Button */}
+                    {frames.length > 1 && currentFrame !== 0 && (
+                        <button
+                            className={`bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg ${isMoveMode ? 'ring-2 ring-yellow-400' : ''}`}
+                            onClick={() => setIsMoveMode(!isMoveMode)}
+                            aria-label={isMoveMode ? 'Switch to drawing mode' : 'Switch to move mode'}
+                        >
+                            <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+                                 width="24" height="24" viewBox="0 0 512.000000 512.000000"
+                                 preserveAspectRatio="xMidYMid meet">
 
-                        <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
-                           fill="#ffffff" stroke="none">
-                            <path d="M2495 4786 c-16 -8 -168 -153 -337 -322 -259 -261 -308 -315 -317
+                                <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
+                                   fill="#ffffff" stroke="none">
+                                    <path d="M2495 4786 c-16 -8 -168 -153 -337 -322 -259 -261 -308 -315 -317
 -349 -21 -81 31 -171 114 -194 23 -6 126 -11 242 -11 l202 0 3 -384 c3 -370 4
 -386 24 -412 39 -53 71 -69 134 -69 63 0 95 16 134 69 20 26 21 42 24 412 l3
 384 202 0 c116 0 219 5 242 11 83 23 136 113 114 194 -9 33 -62 91 -317 349
 -170 170 -321 314 -339 322 -40 17 -89 17 -128 0z"/>
-                            <path d="M995 3275 c-30 -11 -112 -87 -351 -327 -338 -338 -336 -336 -319
+                                    <path d="M995 3275 c-30 -11 -112 -87 -351 -327 -338 -338 -336 -336 -319
 -425 5 -33 48 -79 323 -355 269 -269 323 -318 357 -327 82 -21 171 32 194 114
 6 23 11 126 11 242 l0 202 384 3 c370 3 386 4 412 24 53 39 69 71 69 134 0 63
 -16 95 -69 134 -26 20 -42 21 -412 24 l-384 3 0 207 c-1 215 -8 261 -47 304
 -42 46 -110 64 -168 43z"/>
-                            <path d="M4025 3275 c-49 -17 -90 -62 -104 -112 -6 -21 -11 -129 -11 -240 l0
+                                    <path d="M4025 3275 c-49 -17 -90 -62 -104 -112 -6 -21 -11 -129 -11 -240 l0
 -202 -384 -3 c-370 -3 -386 -4 -412 -24 -53 -39 -69 -71 -69 -134 0 -63 16
 -95 69 -134 26 -20 42 -21 412 -24 l384 -3 0 -202 c0 -116 5 -219 11 -242 23
 -83 113 -136 194 -114 34 9 91 62 357 327 275 276 318 322 323 355 17 89 18
 87 -313 420 -169 170 -318 314 -332 322 -42 22 -83 25 -125 10z"/>
-                            <path d="M2495 2066 c-37 -17 -70 -52 -84 -89 -7 -18 -11 -160 -11 -398 l0
+                                    <path d="M2495 2066 c-37 -17 -70 -52 -84 -89 -7 -18 -11 -160 -11 -398 l0
 -369 -202 0 c-117 0 -220 -5 -243 -11 -83 -23 -136 -113 -114 -194 9 -34 62
 -91 327 -357 276 -275 322 -318 354 -323 90 -17 88 -18 421 313 170 169 315
 319 323 334 22 42 18 119 -9 158 -46 70 -66 75 -314 78 l-222 3 -3 384 c-3
 369 -4 385 -24 411 -11 15 -32 37 -46 47 -34 25 -113 32 -153 13z"/>
-                        </g>
-                    </svg>
-                </button>
-            )}
+                                </g>
+                            </svg>
+                        </button>
+                    )}
+                </div>
+            </div>
             {!!frames2.length && (
                 <FramesToMp4Downloader
                     frames={frames2}
