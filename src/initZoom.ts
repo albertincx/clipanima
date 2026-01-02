@@ -12,16 +12,23 @@ const initZoom = (canvasId = 'canvas') => {
         var i = 0;
         while (i < count && callback(i++) !== true) ;
     };
+    // const drawModeDelay = 8; // number of frames to delay drawing just incase the pinch touch is
     const drawModeDelay = 8; // number of frames to delay drawing just incase the pinch touch is
-                             // slow on the second finger
+    // slow on the second finger
     const worldPoint = {x: 0, y: 0}; // worldf point is in the coordinates system of the drawing
+    const moveStartPoint = {x: 0, y: 0}; // Start point for move operation
+    const moveLayer = document.createElement("canvas"); // Layer for moving content
+    moveLayer.width = 512;
+    moveLayer.height = 512;
+    const mCtx = moveLayer.getContext("2d");
 
     const ctx = canvas.getContext("2d");
     var drawMode = false;    // true while drawing
     var pinchMode = false;   // true while pinching
+    var panMode = false;     // true while panning
     var startup = true;  // will call init when true
 
-// the drawing image
+    // the drawing image
     const drawing = document.createElement("canvas");
     const W = drawing.width = 512;
     const H = drawing.height = 512;
@@ -59,7 +66,7 @@ const initZoom = (canvasId = 'canvas') => {
         // throw new Error("App Error : No touch found");
     }
 
-// drawing functions and data
+    // drawing functions and data
     const drawnPoints = [];  // array of draw points
     function drawOnDrawing() {  // draw all points on drawingPoint array
         const color = (window as any).selectedColor || "black";
@@ -85,7 +92,7 @@ const initZoom = (canvasId = 'canvas') => {
         }
     }
 
-// called once at start
+    // called once at start
 
 
     function init() {
@@ -95,7 +102,7 @@ const initZoom = (canvasId = 'canvas') => {
         view.setContext(ctx);
     }
 
-// standard vars
+    // standard vars
     var w = canvas.width;
     var h = canvas.height;
     var cw = w / 2;  // center
@@ -103,7 +110,7 @@ const initZoom = (canvasId = 'canvas') => {
     var globalTime;
 
 
-// main update function
+    // main update function
     function update(timer) {
         if (startup) {
             init()
@@ -132,7 +139,9 @@ const initZoom = (canvasId = 'canvas') => {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         // handle touch.
         // If single point then draw
-        if ((pointer.count === 1 || drawMode) && !pinchMode) {
+        const isMoveMode = (window as any).isMoveMode;
+
+        if ((pointer.count === 1 || drawMode) && !pinchMode && !isMoveMode) {
             if (pointer.count === 0) {
                 drawMode = false;
                 drawOnDrawing();
@@ -144,6 +153,29 @@ const initZoom = (canvasId = 'canvas') => {
                 } else if (drawnPoints.length > drawModeDelay) {
                     drawMode = true;
                 }
+            }
+        } else if ((pointer.count === 1 || panMode) && isMoveMode && !pinchMode) {
+            drawnPoints.length = 0; // dump any draw points
+            if (pointer.count === 0) {
+                panMode = false;
+                // Finalize move if needed (pixels are already on drawing canvas, just clear moveLayer)
+                mCtx.clearRect(0, 0, moveLayer.width, moveLayer.height);
+            } else if (!panMode && pointer.count === 1) {
+                panMode = true;
+                view.toWorld(pointer.points[0], moveStartPoint);
+                // Copy current drawing to moveLayer
+                mCtx.clearRect(0, 0, moveLayer.width, moveLayer.height);
+                mCtx.drawImage(drawing, 0, 0);
+            } else {
+                view.toWorld(pointer.points[0], worldPoint);
+                const dx = worldPoint.x - moveStartPoint.x;
+                const dy = worldPoint.y - moveStartPoint.y;
+
+                // Redraw drawing canvas with offset
+                dCtx.clearRect(0, 0, drawing.width, drawing.height);
+                dCtx.drawImage(moveLayer, dx, dy);
+
+                // Note: we don't update moveStartPoint here, so dx/dy is total offset from start
             }
             // if two point then pinch.
         } else if (pointer.count === 2 || pinchMode) {
@@ -159,6 +191,7 @@ const initZoom = (canvasId = 'canvas') => {
         } else {
             pinchMode = false;
             drawMode = false;
+            panMode = false;
         }
         requestAnimationFrame(update);
     }

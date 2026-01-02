@@ -23,6 +23,7 @@ const AnimationStudio = () => {
     const [frames2, setFrames2] = useState<string[]>([]); // Store frames as base64 images
     const [currentFrame, setCurrentFrame] = useState(0);
     const [isEraser, setIsEraser] = useState(false);
+    const [isMoveMode, setIsMoveMode] = useState(false);
     // Removed showFrameManager state since frame manager is now always visible
     const [autosaveEnabled, setAutosaveEnabled] = useState(true);
     const [askDeleteFrame, setAskDeleteFrame] = useState(true);
@@ -68,7 +69,8 @@ const AnimationStudio = () => {
         (window as any).selectedColor = selectedColor;
         (window as any).brushSize = brushSize;
         (window as any).isEraser = isEraser;
-    }, [selectedColor, brushSize, isEraser]);
+        (window as any).isMoveMode = isMoveMode;
+    }, [selectedColor, brushSize, isEraser, isMoveMode]);
 
     // Update canvas when current frame changes
     useEffect(() => {
@@ -787,7 +789,10 @@ const AnimationStudio = () => {
     // return null
     return (
         <div className="fixed inset-0 bg-gray-900 overflow-hidden">
-            <canvas id={'canvas2'} className={'absolute left-0 top-0 z-1 contrast-20'}/>
+            <canvas
+                id={'canvas2'}
+                className={`absolute left-0 top-0 z-1 contrast-20${frames.length > 1 || !isPlaying ? '' : ' hidden'}`}
+            />
             <canvas id={'canvas'} className={'absolute left-0 top-0 z-2'}/>
             {/* Color Palette Popup */}
             {showPalette && (
@@ -1037,17 +1042,19 @@ const AnimationStudio = () => {
                             <div>
                                 Frame: {currentFrame + 1}/{frames.length}
                             </div>
-                            <button
-                                className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded"
-                                onClick={deleteFrame}
-                                aria-label="Delete frame"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
-                                     viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                            </button>
+                            {frames.length > 1 && (
+                                <button
+                                    className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded"
+                                    onClick={deleteFrame}
+                                    aria-label="Delete frame"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
+                                         viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            )}
                         </div>
 
                     </div>
@@ -1417,11 +1424,69 @@ const AnimationStudio = () => {
                 onClick={() => setIsEraser(!isEraser)}
                 aria-label={isEraser ? 'Switch to drawing mode' : 'Switch to eraser mode'}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+                     width="24" height="24" viewBox="0 0 512.000000 512.000000"
+                     preserveAspectRatio="xMidYMid meet">
+
+                    <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
+                       fill="#ffffff" stroke="none">
+                        <path d="M3140 4826 c-36 -8 -98 -27 -139 -42 -161 -60 -144 -44 -1369 -1267
+-629 -628 -1163 -1167 -1186 -1197 -232 -298 -227 -703 12 -1001 75 -93 830
+-843 897 -891 130 -92 258 -135 440 -148 72 -5 712 -9 1423 -10 1441 0 1334
+-5 1390 68 22 29 27 46 27 93 0 62 -17 94 -69 133 -27 21 -37 21 -1062 26
+l-1034 5 1091 1090 c600 600 1110 1118 1135 1152 98 135 146 287 146 463 0
+174 -44 316 -140 457 -22 32 -240 256 -484 499 -435 433 -445 441 -533 487
+-130 66 -216 88 -360 93 -78 2 -143 -1 -185 -10z m360 -346 c72 -32 91 -49
+498 -454 233 -232 436 -441 452 -466 90 -139 99 -311 24 -470 -34 -73 -55 -95
+-669 -710 l-635 -635 -710 710 c-390 390 -710 715 -710 720 0 17 1221 1230
+1274 1265 27 18 79 44 115 57 57 21 80 23 176 21 100 -3 117 -6 185 -38z
+m-1825 -1680 l150 -150 -560 -560 c-308 -308 -564 -559 -570 -557 -5 2 -27 37
+-47 78 -71 142 -71 284 -1 429 34 70 61 100 451 493 229 229 419 417 422 417
+3 0 73 -68 155 -150z m565 -565 l185 -185 -563 -562 -562 -563 -190 190 -190
+190 557 557 c307 307 562 558 568 558 6 0 93 -83 195 -185z m301 -1119 c-422
+-422 -464 -458 -581 -493 -121 -38 -292 -14 -394 53 l-39 26 559 559 559 559
+150 -150 150 -150 -404 -404z"/>
+                    </g>
                 </svg>
             </button>
+
+            {/* Move Mode Button */}
+            {frames.length > 1 && currentFrame !== 0 && (
+                <button
+                    className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg z-60 translate-x-48 ${isMoveMode ? 'ring-2 ring-yellow-400' : ''}`}
+                    onClick={() => setIsMoveMode(!isMoveMode)}
+                    aria-label={isMoveMode ? 'Switch to drawing mode' : 'Switch to move mode'}
+                >
+                    <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+                         width="24" height="24" viewBox="0 0 512.000000 512.000000"
+                         preserveAspectRatio="xMidYMid meet">
+
+                        <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)"
+                           fill="#ffffff" stroke="none">
+                            <path d="M2495 4786 c-16 -8 -168 -153 -337 -322 -259 -261 -308 -315 -317
+-349 -21 -81 31 -171 114 -194 23 -6 126 -11 242 -11 l202 0 3 -384 c3 -370 4
+-386 24 -412 39 -53 71 -69 134 -69 63 0 95 16 134 69 20 26 21 42 24 412 l3
+384 202 0 c116 0 219 5 242 11 83 23 136 113 114 194 -9 33 -62 91 -317 349
+-170 170 -321 314 -339 322 -40 17 -89 17 -128 0z"/>
+                            <path d="M995 3275 c-30 -11 -112 -87 -351 -327 -338 -338 -336 -336 -319
+-425 5 -33 48 -79 323 -355 269 -269 323 -318 357 -327 82 -21 171 32 194 114
+6 23 11 126 11 242 l0 202 384 3 c370 3 386 4 412 24 53 39 69 71 69 134 0 63
+-16 95 -69 134 -26 20 -42 21 -412 24 l-384 3 0 207 c-1 215 -8 261 -47 304
+-42 46 -110 64 -168 43z"/>
+                            <path d="M4025 3275 c-49 -17 -90 -62 -104 -112 -6 -21 -11 -129 -11 -240 l0
+-202 -384 -3 c-370 -3 -386 -4 -412 -24 -53 -39 -69 -71 -69 -134 0 -63 16
+-95 69 -134 26 -20 42 -21 412 -24 l384 -3 0 -202 c0 -116 5 -219 11 -242 23
+-83 113 -136 194 -114 34 9 91 62 357 327 275 276 318 322 323 355 17 89 18
+87 -313 420 -169 170 -318 314 -332 322 -42 22 -83 25 -125 10z"/>
+                            <path d="M2495 2066 c-37 -17 -70 -52 -84 -89 -7 -18 -11 -160 -11 -398 l0
+-369 -202 0 c-117 0 -220 -5 -243 -11 -83 -23 -136 -113 -114 -194 9 -34 62
+-91 327 -357 276 -275 322 -318 354 -323 90 -17 88 -18 421 313 170 169 315
+319 323 334 22 42 18 119 -9 158 -46 70 -66 75 -314 78 l-222 3 -3 384 c-3
+369 -4 385 -24 411 -11 15 -32 37 -46 47 -34 25 -113 32 -153 13z"/>
+                        </g>
+                    </svg>
+                </button>
+            )}
             {!!frames2.length && (
                 <FramesToMp4Downloader
                     frames={frames2}
