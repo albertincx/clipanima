@@ -25,6 +25,7 @@ const AnimationStudio = () => {
     const [isEraser, setIsEraser] = useState(false);
     // Removed showFrameManager state since frame manager is now always visible
     const [autosaveEnabled, setAutosaveEnabled] = useState(true);
+    const [askDeleteFrame, setAskDeleteFrame] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
     const [fps, setFps] = useState(5); // frames per second
     // State for Load Grid Modal checkboxes
@@ -275,7 +276,7 @@ const AnimationStudio = () => {
         if (frames.length <= 1) return; // Don't delete the last frame
 
         // Show confirmation dialog
-        if (!window.confirm('Are you sure you want to delete this frame? This action cannot be undone.')) {
+        if (askDeleteFrame && !window.confirm('Are you sure you want to delete this frame? This action cannot be undone.')) {
             return;
         }
 
@@ -458,11 +459,9 @@ const AnimationStudio = () => {
             const ctx = drawingCanvas.getContext('2d');
             if (ctx) {
                 // Clear the drawing canvas and fill with white
-                if (currentFrame === 0 || !onionSkinEnabled) {
-                    console.log('currentFrame', currentFrame);
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                }
+                // console.log('currentFrame', currentFrame);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 
                 // Create a new blank frame
                 const blankFrameData = drawingCanvas.toDataURL();
@@ -470,6 +469,23 @@ const AnimationStudio = () => {
                 // Reset frames to contain only the blank frame
                 setFrames([blankFrameData]);
                 setCurrentFrame(0);
+
+                // Also clear the onion skin canvas if it exists
+                const canvas2 = document.getElementById('canvas2') as HTMLCanvasElement;
+                if (canvas2) {
+                    // canvas2?.classList.remove('contrast-20')
+                    const ctx2 = canvas2.getContext('2d');
+                    if (ctx2) {
+                        ctx2.fillStyle = 'white';
+                        ctx2.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    }
+                }
+
+                // Reset other relevant states
+                if (isPlaying) {
+                    pauseAnimation(); // Stop any playing animation
+                    setIsPlaying(false); // Ensure playing state is reset
+                }
 
                 // Autosave if enabled
                 if (autosaveEnabled) {
@@ -711,7 +727,16 @@ const AnimationStudio = () => {
                 saveFramesToLocalStorage(newFrames);
             }
         };
-
+        const canvas2 = document.getElementById('canvas2') as HTMLCanvasElement;
+        if (canvas2) {
+            const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+            // canvas2?.classList.remove('contrast-20')
+            const ctx2 = canvas2.getContext('2d');
+            if (ctx2) {
+                ctx2.fillStyle = 'white';
+                ctx2.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            }
+        }
         img.src = imagePath;
     };
 
@@ -1048,6 +1073,33 @@ const AnimationStudio = () => {
                             </svg>
                         </button>
                     </div>
+                    <div className="flex items-center justify-between mb-5">
+                        <span className="text-white">New Project</span>
+                        <button
+                            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded"
+                            onClick={newProject}
+                            aria-label="Start new project"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                 stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-white">Ask delete frame</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={askDeleteFrame}
+                                onChange={(e) => setAskDeleteFrame(e.target.checked)}
+                            />
+                            <div
+                                className={`w-11 h-6 rounded-full peer ${askDeleteFrame ? 'bg-blue-600' : 'bg-gray-700'} peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
+                        </label>
+                    </div>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-white">Autosave to localStorage</span>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -1108,20 +1160,6 @@ const AnimationStudio = () => {
                             <div
                                 className={`w-11 h-6 rounded-full peer ${onionSkinEnabled ? 'bg-blue-600' : 'bg-gray-700'} peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                         </label>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-white">New Project</span>
-                        <button
-                            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded"
-                            onClick={newProject}
-                            aria-label="Start new project"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                            </svg>
-                        </button>
                     </div>
                     <div className="flex items-center justify-between mt-2">
                         <span className="text-white">Custom FPS</span>
