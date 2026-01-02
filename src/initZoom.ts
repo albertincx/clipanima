@@ -3,9 +3,9 @@
 // Posted by Blindman67, modified by community. See post 'Timeline' for change history
 // Retrieved 2025-12-27, License - CC BY-SA 4.0
 
-const initZoom = () => {
+const initZoom = (canvasId = 'canvas') => {
     const U = undefined;
-    let canvas = document.getElementById("canvas");
+    let canvas = document.getElementById(canvasId);
     if (!canvas) return
 
     const doFor = (count, callback) => {
@@ -41,7 +41,15 @@ const initZoom = () => {
         img.src = dataUrl;
     };
 
-// pointer is the interface to the touch
+    if (canvasId === 'canvas') {
+        let canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext("2d");
+        ctx2.clearRect(0, 0, w, h);
+        ctx2.fillRect(5, H, W - 5, 5)
+        ctx2.fillRect(W, 5, 5, H);
+    }
+
+    // pointer is the interface to the touch
     const pointer = setupPointingDevice(canvas);
     ctx.font = "16px arial.";
     if (pointer === undefined) {
@@ -107,6 +115,10 @@ const initZoom = () => {
         if (w !== innerWidth || h !== innerHeight) {
             cw = (w = canvas.width = innerWidth) / 2;
             ch = (h = canvas.height = innerHeight) / 2;
+        }
+        if (canvas2.width === 300) {
+            canvas2.width = innerWidth
+            canvas2.height = innerHeight
         }
         // clear main canvas and draw the draw image with shadows and make it look nice
         ctx.clearRect(0, 0, w, h);

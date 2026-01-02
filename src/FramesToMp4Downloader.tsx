@@ -1,18 +1,21 @@
 // FramesToMp4Downloader.tsx
 import React, {useEffect, useState} from 'react';
 import {Muxer, ArrayBufferTarget} from 'mp4-muxer';
+import {processFramesWithWhiteBackgroundAsync} from "./utils/frameProcessor";
 
 interface FrameToMp4Props {
     frames: string[]; // array of base64 PNG strings, e.g. "data:image/png;base64,..."
     fps?: number;
     width?: number;
     clearFrames?: any;
+    onionSkinEnabled?: any;
     height?: number;
 }
 
 export const FramesToMp4Downloader: React.FC<FrameToMp4Props> = ({
                                                                      frames,
                                                                      clearFrames,
+                                                                     onionSkinEnabled,
                                                                      fps = 10,
                                                                      width = 512,
                                                                      height = 512,
@@ -32,7 +35,15 @@ export const FramesToMp4Downloader: React.FC<FrameToMp4Props> = ({
         let mp4Blob: Blob | null = null;
 
         try {
-            mp4Blob = await encodeFramesToMp4(frames, fps, width, height);
+            // Process frames to add white background before encoding
+            console.log('Processing frames with white background...');
+            if (onionSkinEnabled) {
+                const framesWithWhiteBackground = await processFramesWithWhiteBackgroundAsync(frames, width, height);
+                mp4Blob = await encodeFramesToMp4(framesWithWhiteBackground, fps, width, height);
+            } else {
+                mp4Blob = await encodeFramesToMp4(frames, fps, width, height);
+            }
+            console.log('Frames processed with white background');
             console.log('mp4Blob')
             console.log(mp4Blob)
             if (mp4Blob) {

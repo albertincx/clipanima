@@ -30,6 +30,7 @@ const AnimationStudio = () => {
     // State for Load Grid Modal checkboxes
     const [preserveAspectRatio, setPreserveAspectRatio] = useState(true);
     const [autoAdjustGrid, setAutoAdjustGrid] = useState(true);
+    const [onionSkinEnabled, setOnionSkinEnabled] = useState(true);
     // Ref for the grid image file input
     const gridImageInputRef = useRef<HTMLInputElement>(null);
     // @ts-ignore
@@ -79,12 +80,34 @@ const AnimationStudio = () => {
                 const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
                 const ctx = drawingCanvas.getContext('2d');
                 if (ctx) {
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    // Frame 0 defaults to white, others transparent
+                    if (currentFrame === 0 || !onionSkinEnabled) {
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    } else {
+                        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    }
+                }
+            }
+            if (currentFrame > 0 && onionSkinEnabled) {
+                var city = new Image();
+                const cnv2 = document.getElementById('canvas2');
+                if (cnv2) {
+                    // @ts-ignore
+                    const ctx2 = cnv2.getContext('2d');
+                    const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+                    ctx2.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    ctx2.fillStyle = 'white';
+                    ctx2.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                    let img1 = frames[currentFrame - 1];
+                    city.onload = () => {
+                        ctx2.drawImage(city, 0, 0);
+                    };
+                    city.src = img1;
                 }
             }
         }
-    }, [currentFrame, frames]);
+    }, [currentFrame, frames]); // EFFECT
 
     // Handle autosave when frames change and autosave is enabled
     useEffect(() => {
@@ -111,8 +134,13 @@ const AnimationStudio = () => {
             if (!ctx) return;
 
             // Clear the canvas
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            if (currentFrame === 0 || !onionSkinEnabled) {
+                console.log('currentFrame', currentFrame);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            } else {
+                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            }
 
             // Draw example based on type
             ctx.fillStyle = selectedColor;
@@ -221,8 +249,13 @@ const AnimationStudio = () => {
             const ctx = drawingCanvas.getContext('2d');
             if (ctx) {
                 // Clear the drawing canvas and fill with white
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                if (currentFrame === 0 || !onionSkinEnabled) {
+                    console.log('currentFrame', currentFrame);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                } else {
+                    ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                }
 
                 // Update the current frame with the cleared canvas data
                 const updatedFrames = [...frames];
@@ -326,9 +359,12 @@ const AnimationStudio = () => {
 
     // Function to toggle play/pause
     const togglePlayPause = () => {
+        const cnv2 = document.getElementById('canvas2');
         if (isPlaying) {
+            if (onionSkinEnabled) cnv2?.classList.add('contrast-20')
             pauseAnimation();
         } else {
+            if (onionSkinEnabled) cnv2?.classList.remove('contrast-20')
             // changeFrame(0)
             // If we're at the last frame and want to play again, go back to first frame
             if (currentFrame === frames.length - 1) {
@@ -396,94 +432,17 @@ const AnimationStudio = () => {
         document.body.removeChild(link);
     };
 
-    // Function to convert frames to GIF
-    const exportGif = async () => {
+    // Function to export MP4 with white background
+    const exportMp4WithWhiteBackground = async () => {
         if (frames.length === 0) {
             alert('No frames to export');
             return;
         }
-
         // Show confirmation dialog
-        if (!window.confirm('Are you sure you want to export this animation as a MP4? This may take a moment.')) {
+        if (!window.confirm('Are you sure you want to export this animation as an MP4 with white background? This may take a moment.')) {
             return;
         }
-
-        try {
-            console.log('frames')
-            console.log(frames)
-            // ffmpeg.on('log', (m: any) => {
-            //     console.log(m)
-            // })
-            const getBase64FromDataUrl = (dataUrl: any) => {
-                if (typeof dataUrl !== 'string') return null;
-                const parts = dataUrl.split(',');
-                if (parts.length !== 2 || !parts[0].includes('base64')) {
-                    console.warn('Not a valid base64 Data URL:', dataUrl);
-                    return null;
-                }
-                return parts[1]; // pure base64 string
-            };
-            let f = []
-            // Convert base64 frames to image files for ffmpeg
-            for (let i = 0; i < frames.length; i++) {
-                const frameData = frames[i];
-                // let b64 = getBase64FromDataUrl(frameData)
-                if (frameData) {
-                    f.push(frameData);
-                }
-                if (frameData) {
-                    // Convert base64 to Uint8Array
-                    const base64Data = frameData.split(',')[1]; // Remove data:image/png;base64, prefix
-                    const binaryString = atob(base64Data);
-                    const bytes = new Uint8Array(binaryString.length);
-                    for (let j = 0; j < binaryString.length; j++) {
-                        bytes[j] = binaryString.charCodeAt(j);
-                    }
-
-                    // Write frame to ffmpeg as image file
-                    // console.log(ffmpeg)
-                    // await ffmpeg.writeFile(`frame${i.toString().padStart(3, '0')}.png`, bytes);
-                }
-            }
-            console.log(f)
-            if (f.length) setFrames2(frames.filter(Boolean));
-
-            // Create a text file with frame list for ffmpeg
-            const frameList = frames.map((_, i) => {
-                // const data2 = await ffmpeg.readFile(`frame${i.toString().padStart(3, '0')}.png`);
-
-                // downloadFile(data2, `frame${i.toString().padStart(3, '0')}.png`, 'image/png')
-                return `file 'frame${i.toString().padStart(3, '0')}.png'`
-            }).join('\n') + '\n';
-
-
-            // await ffmpeg.writeFile('framelist.txt', new TextEncoder().encode(frameList));
-            // const data1 = await ffmpeg.readFile('framelist.txt');
-            // console.log(data1)
-            // downloadFile(data1, 'framelist.txt', 'image/plain')
-
-            // Run ffmpeg command to create GIF
-            // await ffmpeg.exec(
-            //     '-f', 'concat',
-            //     '-safe', '0',
-            //     '-i', 'framelist.txt',
-            //     '-vf', 'fps=5,scale=320:320:flags=lanczos',
-            //     '-pix_fmt', 'rgb24',
-            //     '-y',
-            //     'output.gif'
-            // );
-
-            // Read the output GIF
-            // const data = await ffmpeg.readFile('output.gif');
-            // downloadFile(data, 'animation.gif', 'image/gif')
-            // const data = await ffmpeg.readFile('output.webm');
-            // downloadFile(data, 'animation.webm', 'video/webm')
-
-            // alert('GIF exported successfully!');
-        } catch (error) {
-            console.error('Error exporting GIF:', error);
-            // alert('Error exporting GIF: ' + (error as Error).message);
-        }
+        setFrames2(frames)
     };
 
     // Function to start a new project
@@ -499,8 +458,11 @@ const AnimationStudio = () => {
             const ctx = drawingCanvas.getContext('2d');
             if (ctx) {
                 // Clear the drawing canvas and fill with white
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                if (currentFrame === 0 || !onionSkinEnabled) {
+                    console.log('currentFrame', currentFrame);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                }
 
                 // Create a new blank frame
                 const blankFrameData = drawingCanvas.toDataURL();
@@ -774,11 +736,8 @@ const AnimationStudio = () => {
     // return null
     return (
         <div className="fixed inset-0 bg-gray-900 overflow-hidden">
-            <canvas
-                id={'canvas'}
-
-            />
-
+            <canvas id={'canvas2'} className={'absolute left-0 top-0 z-1 contrast-20'}/>
+            <canvas id={'canvas'} className={'absolute left-0 top-0 z-2'}/>
             {/* Color Palette Popup */}
             {showPalette && (
                 <div
@@ -1088,7 +1047,7 @@ const AnimationStudio = () => {
                         <span className="text-white">Save as MP4</span>
                         <button
                             className="bg-green-600 hover:bg-green-700 text-white p-2 rounded"
-                            onClick={exportGif}
+                            onClick={exportMp4WithWhiteBackground}
                             aria-label="Export as MP4"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none"
@@ -1097,6 +1056,23 @@ const AnimationStudio = () => {
                                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
                         </button>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                        <span
+                            className={`${frames.length > 1 ? 'text-gray-500' : 'text-white'}`}>Onion Skin {frames.length > 1 ? '(disabled)' : ''}</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                disabled={frames.length > 1}
+                                type="checkbox"
+                                className={`sr-only peer ${frames.length > 1 ? ' disabled' : ''}`}
+                                checked={onionSkinEnabled}
+                                onChange={(e) => {
+                                    setOnionSkinEnabled(e.target.checked)
+                                }}
+                            />
+                            <div
+                                className={`w-11 h-6 rounded-full peer ${onionSkinEnabled ? 'bg-blue-600' : 'bg-gray-700'} peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
+                        </label>
                     </div>
                     <div className="flex items-center justify-between">
                         <span className="text-white">New Project</span>
@@ -1375,8 +1351,12 @@ const AnimationStudio = () => {
             </button>
             {!!frames2.length && (
                 <FramesToMp4Downloader
-                    frames={frames2} fps={fps} width={512} height={512}
+                    frames={frames2}
+                    fps={fps}
+                    width={512}
+                    height={512}
                     clearFrames={() => setFrames2([])}
+                    onionSkinEnabled={onionSkinEnabled}
                 />
             )}
 

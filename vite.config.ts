@@ -179,5 +179,8 @@ export default ({mode}) => {
                 },
             },
         },
+        server: {
+            port: 5174,
+        }
     })
 }
