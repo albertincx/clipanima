@@ -493,6 +493,11 @@ const AnimationStudio = () => {
                 if (autosaveEnabled) {
                     saveFramesToLocalStorage([blankFrameData]);
                 }
+
+                // Reset zoom and pan
+                if ((window as any).resetZoom) {
+                    (window as any).resetZoom();
+                }
             }
         }
     };

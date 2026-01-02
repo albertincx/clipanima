@@ -413,6 +413,9 @@ const initZoom = (canvasId = 'canvas') => {
                 dirty = true
             },
         };
+
+        // Expose reset function globally
+        (window as any).resetZoom = API.reset;
         return API;
     })();
 }
