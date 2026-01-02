@@ -581,6 +581,32 @@ const AnimationStudio = () => {
         reader.readAsDataURL(file);
     };
 
+    // Function to fill the canvas with selected color
+    const fillCanvas = (color: string) => {
+        if ((window as any).drawingCanvas) {
+            const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
+            const ctx = drawingCanvas.getContext('2d');
+            if (ctx) {
+                // Save the current frame before filling
+                const updatedFrames = [...frames];
+                updatedFrames[currentFrame] = getCanvasData();
+
+                // Fill the canvas with the selected color
+                ctx.fillStyle = color;
+                ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+
+                // Update the current frame with the filled canvas data
+                updatedFrames[currentFrame] = drawingCanvas.toDataURL();
+                setFrames(updatedFrames);
+
+                // Autosave if enabled
+                if (autosaveEnabled) {
+                    saveFramesToLocalStorage(updatedFrames);
+                }
+            }
+        }
+    };
+
     // Function to load example grid images
     const loadExampleGrid = (imagePath: string, cellWidth: number, cellHeight: number) => {
         if (VITE_TEST) {
@@ -766,6 +792,15 @@ const AnimationStudio = () => {
                             className="w-32 accent-white"
                         />
                         <span className="text-white text-sm w-8">{brushSize}px</span>
+                    </div>
+                    <div className="mt-3">
+                        <button
+                            className="w-full bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
+                            onClick={() => fillCanvas(selectedColor)}
+                            aria-label="Fill canvas with selected color"
+                        >
+                            Fill Canvas
+                        </button>
                     </div>
                 </div>
             )}
