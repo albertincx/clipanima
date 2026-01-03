@@ -29,6 +29,9 @@ const AnimationStudio = () => {
     const [askDeleteFrame, setAskDeleteFrame] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
     const [fps, setFps] = useState(5); // frames per second
+    // Undo/Redo state
+    const [history, setHistory] = useState<string[][]>([]);
+    const [historyPosition, setHistoryPosition] = useState(-1);
     // State for Load Grid Modal checkboxes
     const [preserveAspectRatio, setPreserveAspectRatio] = useState(true);
     const [autoAdjustGrid, setAutoAdjustGrid] = useState(true);
@@ -42,20 +45,43 @@ const AnimationStudio = () => {
         // Initialize with a blank frame after the canvas is ready
         const timer = setTimeout(() => {
             // Initialize the drawing function first
-            initZoom();
+            let lastCanvasData = '';
+            
+            initZoom('canvas', () => {
+                // This callback is called when drawing is completed on the canvas
+                // Check if the canvas actually changed before saving to history
+                const currentCanvasData = getCanvasData();
+                
+                // Only save to history if the canvas data has changed
+                if (currentCanvasData !== lastCanvasData) {
+                    const updatedFrames = [...frames];
+                    updatedFrames[currentFrame] = currentCanvasData;
+                    setFrames(updatedFrames);
+                    saveToHistory(updatedFrames);
+                    lastCanvasData = currentCanvasData;
+                }
+            });
 
             // Then get the drawing canvas data after initZoom has created it
             setTimeout(() => {
                 if ((window as any).drawingCanvas) {
                     const drawingCanvas = (window as any).drawingCanvas as HTMLCanvasElement;
                     const initialFrameData = drawingCanvas.toDataURL();
+                    lastCanvasData = initialFrameData; // Initialize the last canvas data
 
                     // Check if autosave is enabled and try to load frames from localStorage
                     const savedFrames = loadFramesFromLocalStorage();
                     if (savedFrames && savedFrames.length > 0) {
                         setFrames(savedFrames);
+                        // Initialize history with the loaded frames
+                        setHistory([savedFrames]);
+                        setHistoryPosition(0);
                     } else {
-                        setFrames([initialFrameData]);
+                        const initialFrames = [initialFrameData];
+                        setFrames(initialFrames);
+                        // Initialize history with the initial frames
+                        setHistory(initialFrames);
+                        setHistoryPosition(0);
                     }
                 }
             }, 50); // Small delay to ensure drawing canvas is ready
@@ -212,6 +238,9 @@ const AnimationStudio = () => {
         newFrames.splice(currentFrame + 1, 0, newFrameData);
         setFrames(newFrames);
         setCurrentFrame(currentFrame + 1);
+        
+        // Save to history for undo/redo
+        saveToHistory(newFrames);
     };
 
     // Function to duplicate current frame
@@ -228,6 +257,9 @@ const AnimationStudio = () => {
         newFrames.splice(currentFrame + 1, 0, currentFrameData);
         setFrames(newFrames);
         setCurrentFrame(currentFrame + 1);
+
+        // Save to history for undo/redo
+        saveToHistory(newFrames);
 
         // Autosave if enabled
         if (autosaveEnabled) {
@@ -259,6 +291,9 @@ const AnimationStudio = () => {
                 const updatedFrames = [...frames];
                 updatedFrames[currentFrame] = drawingCanvas.toDataURL();
                 setFrames(updatedFrames);
+                
+                // Save to history for undo/redo
+                saveToHistory(updatedFrames);
 
                 // Autosave if enabled
                 if (autosaveEnabled) {
@@ -287,6 +322,9 @@ const AnimationStudio = () => {
         // Update current frame index, ensuring it's within bounds
         const newCurrentFrame = Math.min(currentFrame, newFrames.length - 1);
         setCurrentFrame(newCurrentFrame);
+
+        // Save to history for undo/redo
+        saveToHistory(newFrames);
 
         // Autosave if enabled
         if (autosaveEnabled) {
@@ -397,6 +435,10 @@ const AnimationStudio = () => {
         setFrames(newFrames);
         setCurrentFrame(0);
 
+        // Initialize history with the new frames
+        setHistory([newFrames]);
+        setHistoryPosition(0);
+
         // Update canvas to show the first frame
         if (newFrames.length > 0) {
             setCanvasData(newFrames[0]);
@@ -459,8 +501,12 @@ const AnimationStudio = () => {
                 const blankFrameData = drawingCanvas.toDataURL();
 
                 // Reset frames to contain only the blank frame
-                setFrames([blankFrameData]);
+                const newFrames = [blankFrameData];
+                setFrames(newFrames);
                 setCurrentFrame(0);
+                
+                // Save to history for undo/redo
+                saveToHistory(newFrames);
 
                 // Also clear the onion skin canvas if it exists
                 const canvas2 = document.getElementById('canvas2') as HTMLCanvasElement;
@@ -481,7 +527,7 @@ const AnimationStudio = () => {
 
                 // Autosave if enabled
                 if (autosaveEnabled) {
-                    saveFramesToLocalStorage([blankFrameData]);
+                    saveFramesToLocalStorage(newFrames);
                 }
 
                 // Reset zoom and pan
@@ -580,6 +626,10 @@ const AnimationStudio = () => {
                 // Update the frames state
                 setFrames(newFrames);
                 setCurrentFrame(0);
+                
+                // Initialize history with the new frames
+                setHistory([newFrames]);
+                setHistoryPosition(0);
 
                 // Close the modal
                 setShowLoadGridModal(false);
@@ -611,11 +661,70 @@ const AnimationStudio = () => {
                 // Update the current frame with the filled canvas data
                 updatedFrames[currentFrame] = drawingCanvas.toDataURL();
                 setFrames(updatedFrames);
+                
+                // Save to history for undo/redo
+                saveToHistory(updatedFrames);
 
                 // Autosave if enabled
                 if (autosaveEnabled) {
                     saveFramesToLocalStorage(updatedFrames);
                 }
+            }
+        }
+    };
+
+    // Function to save current state to history for undo/redo
+    const saveToHistory = (framesToSave: string[]) => {
+        // Only save if there are frames to save
+        if (framesToSave.length === 0) return;
+
+        // If we're not at the end of the history, truncate it
+        const newHistory = history.slice(0, historyPosition + 1);
+        
+        // Add the current frames to history
+        newHistory.push([...framesToSave]);
+        
+        // Limit history to prevent memory issues (keep last 50 states)
+        if (newHistory.length > 50) {
+            newHistory.shift();
+        }
+        
+        setHistory(newHistory);
+        setHistoryPosition(newHistory.length - 1);
+    };
+
+    // Function to undo last action
+    const undo = () => {
+        if (historyPosition <= 0) return; // Can't undo if at the beginning
+        
+        const newPosition = historyPosition - 1;
+        const previousState = history[newPosition];
+        
+        if (previousState) {
+            setFrames([...previousState]);
+            setHistoryPosition(newPosition);
+            
+            // Update canvas to show the previous state
+            if (previousState[currentFrame]) {
+                setCanvasData(previousState[currentFrame]);
+            }
+        }
+    };
+
+    // Function to redo next action
+    const redo = () => {
+        if (historyPosition >= history.length - 1) return; // Can't redo if at the end
+        
+        const newPosition = historyPosition + 1;
+        const nextState = history[newPosition];
+        
+        if (nextState) {
+            setFrames([...nextState]);
+            setHistoryPosition(newPosition);
+            
+            // Update canvas to show the next state
+            if (nextState[currentFrame]) {
+                setCanvasData(nextState[currentFrame]);
             }
         }
     };
@@ -715,6 +824,10 @@ const AnimationStudio = () => {
             // Update the frames state
             setFrames(newFrames);
             setCurrentFrame(0);
+            
+            // Initialize history with the new frames
+            setHistory([newFrames]);
+            setHistoryPosition(0);
 
             // Close the modal
             setShowLoadGridModal(false);
@@ -968,6 +1081,28 @@ const AnimationStudio = () => {
                                     <option value="30">30</option>
                                 </select>
                             </div>
+
+                            <button
+                                className={`bg-gray-700 hover:bg-gray-600 text-white p-2 rounded ${historyPosition <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                onClick={undo}
+                                disabled={historyPosition <= 0}
+                                aria-label="Undo"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                            </button>
+
+                            <button
+                                className={`bg-gray-700 hover:bg-gray-600 text-white p-2 rounded ${historyPosition >= history.length - 1 || history.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                onClick={redo}
+                                disabled={historyPosition >= history.length - 1 || history.length === 0}
+                                aria-label="Redo"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </button>
                         </div>
 
                         {frames.length > 1 && (
