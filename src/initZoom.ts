@@ -33,7 +33,7 @@ const initZoom = (canvasId = 'canvas') => {
     const W = drawing.width = 512;
     const H = drawing.height = 512;
     const dCtx = drawing.getContext("2d");
-    dCtx.fillStyle = "white";
+    dCtx.fillStyle = 'white';
     dCtx.fillRect(0, 0, W, H);
 
     // Expose drawing canvas and functions for frame management

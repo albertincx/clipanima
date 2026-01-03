@@ -836,7 +836,7 @@ const AnimationStudio = () => {
                 <div
                     className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 p-4 rounded-lg shadow-lg z-60">
                     <h3 className="text-white mb-2">Examples</h3>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-wrap gap-2">
                         <button
                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
                             onClick={() => {
@@ -1263,6 +1263,15 @@ const AnimationStudio = () => {
                             >
                                 Man Grid
                             </button>
+                            <button
+                                className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded"
+                                onClick={() => {
+                                    loadExampleGrid('/assets/clip.png', 340, 340);
+                                    setShowExamples(false);
+                                }}
+                            >
+                                Clipanima 3D
+                            </button>
                         </div>
                     </div>
 
@@ -1450,7 +1459,13 @@ m-1825 -1680 l150 -150 -560 -560 c-308 -308 -564 -559 -570 -557 -5 2 -27 37
                             </g>
                         </svg>
                     </button>
-
+                    <button
+                        className={`bg-gray-700 hover:bg-gray-600 text-white p-3 rounded-full shadow-lg text-[7px]`}
+                        // @ts-ignore
+                        onClick={() => window.resetZoom()}
+                    >
+                        Reset <br/>zoom
+                    </button>
                     {/* Move Mode Button */}
                     {frames.length > 1 && currentFrame !== 0 && (
                         <button
