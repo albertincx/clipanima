@@ -3,7 +3,7 @@
 // Posted by Blindman67, modified by community. See post 'Timeline' for change history
 // Retrieved 2025-12-27, License - CC BY-SA 4.0
 
-const initZoom = (canvasId = 'canvas') => {
+const initZoom = (canvasId = 'canvas', onDrawingComplete?: () => void) => {
     const U = undefined;
     let canvas = document.getElementById(canvasId);
     if (!canvas) return
@@ -89,6 +89,11 @@ const initZoom = (canvasId = 'canvas') => {
             dCtx.arc(point.x, point.y, size / 2, 0, Math.PI * 2); // Use half of size for radius
             dCtx.fill();
             dCtx.stroke();
+        }
+        
+        // Notify that drawing is complete if a callback is provided
+        if (onDrawingComplete) {
+            onDrawingComplete();
         }
     }
 
