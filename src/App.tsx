@@ -382,6 +382,7 @@ const AnimationStudio = () => {
         setFrames(updatedFrames);
 
         setCurrentFrame(index);
+        setIsMoveMode(false);
     };
 
     // Function to load frames from external source
@@ -488,6 +489,7 @@ const AnimationStudio = () => {
                 if ((window as any).resetZoom) {
                     (window as any).resetZoom();
                 }
+                setShowSettings(false)
             }
         }
     };
@@ -723,6 +725,7 @@ const AnimationStudio = () => {
             if (autosaveEnabled) {
                 saveFramesToLocalStorage(newFrames);
             }
+            setIsMoveMode(false)
         };
         const canvas2 = document.getElementById('canvas2') as HTMLCanvasElement;
         if (canvas2) {
@@ -1058,7 +1061,7 @@ const AnimationStudio = () => {
                         </label>
                     </div>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-white">Autosave to localStorage</span>
+                        <span className="text-white">Autosave</span>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input
                                 type="checkbox"
